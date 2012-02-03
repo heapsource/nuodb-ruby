@@ -1,3 +1,13 @@
+Features
+========
+
+* Native DBI compatible driver
+* AREL integration
+* ActiveRecord driver
+* JRuby Driver
+
+Related Links
+=============
 
 http://ruby-dbi.rubyforge.org/rdoc/
 http://www.troubleshooters.com/codecorn/ruby/database/index.htm
