@@ -1,0 +1,4 @@
+activerecord-jdbcnuodb-adapter/pkg/
+jdbc-nuodb/lib/nuodbjdbc.jar
+jdbc-nuodb/pkg/
+pkg/
