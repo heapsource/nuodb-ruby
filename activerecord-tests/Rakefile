@@ -1,0 +1,14 @@
+require 'rake/testtask'
+require 'rake/clean'
+
+require 'bundler'
+# Bundler::GemHelper.install_tasks
+require 'bundler/setup'
+
+task :default => [:test]
+
+require 'rake/testtask'
+Rake::TestTask.new do |i|
+  i.test_files = FileList['test/*.rb']
+  i.verbose = true
+end
