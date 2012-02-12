@@ -41,10 +41,10 @@ module ::ArJdbc
 
     def quote(value, column = nil)
       case value
-      when true, false
+      when TrueClass, FalseClass
         value.to_s
       else
-        super(value, column)
+        super
       end
     end
 
