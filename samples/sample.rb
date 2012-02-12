@@ -42,7 +42,7 @@ end
 class SampleUser < ActiveRecord::Base
   has_one :addr, :class_name => 'SampleAddr'
   def to_s
-    return "SampleUser(#{id}), Username: #{user_name}, Name: #{first_name} #{last_name}, #{admin == 1 ? "admin" : "member"}\n" +
+    return "SampleUser(#{id}), Username: #{user_name}, Name: #{first_name} #{last_name}, #{admin ? "admin" : "member"}\n" +
     "  Address: #{addr}\n"
   end
 end
@@ -69,6 +69,8 @@ end
   a.city = "Bedrock"
   a.zip = "00001"
 end
+
+puts "Created #{@u}"
 
 @u = SampleUser.create do |u|
   u.first_name = "Barney"

@@ -1,0 +1,11 @@
+#! /bin/sh -x
+
+#
+# This is for NuoDB development only -- do not include in the release!
+#
+
+JARDIR=${NUODB_ROOT}/jar
+DEVDIR=../jruby
+
+jruby -I ${DEVDIR}/activerecord-jdbcnuodb-adapter/lib -I ${DEVDIR}/jdbc-nuodb/lib -I %JARDIR% sample.rb
+

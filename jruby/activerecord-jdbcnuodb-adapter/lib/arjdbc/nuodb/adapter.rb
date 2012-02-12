@@ -14,7 +14,7 @@ module ::ArJdbc
 
     def modify_types(tp)
       tp[:primary_key] = 'int not null generated always primary key'
-      tp[:boolean] = { :name => 'tinyint' }
+      tp[:boolean] = { :name => 'boolean' }
       tp[:integer] = { :name => 'int', :limit => 4 }
       tp[:decimal] = { :name => 'decimal' }
       tp[:string] = { :name => 'string' }
@@ -33,9 +33,18 @@ module ::ArJdbc
       elsif limit == 2
         'smallint'
       elsif limit == 1
-        'tinyint'
+        'smallint'
       else
         'bigint'
+      end
+    end
+
+    def quote(value, column = nil)
+      case value
+      when true, false
+        value.to_s
+      else
+        super(value, column)
       end
     end
 
