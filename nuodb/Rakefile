@@ -1,0 +1,8 @@
+begin
+  require 'rake'
+rescue LoadError
+  require 'rubygems'
+  require 'rake'
+end
+
+Dir['tasks/*.rake'].sort.each { |f| load f }
