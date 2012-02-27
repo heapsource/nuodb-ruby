@@ -23,9 +23,17 @@ class TC_Nuodb < Test::Unit::TestCase
   def teardown()
   end
 
-  def test_init()
-    assert_nothing_raised{@m = Mysql.init}
-    assert_nothing_raised{@m.close}
+  def test_version()
+    @options = [
+                :database => 'test',
+                :username => 'cloud',
+                :password => 'user'
+                ]
+
+    @env = Nuodb::SqlEnvironment.createSqlEnvironment @options
+    @con = @env.createSqlConnection @options
+    @dmd = @con.getMetaData
+    assert_equal('%%PRODUCT_VERSION%%', @dmd.getDatabaseVersion)
   end
 
 end
