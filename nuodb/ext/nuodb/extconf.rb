@@ -6,7 +6,6 @@ dir_config('nuosqlapi', '/opt/NuoSqlApi/include', '/opt/NuoSqlApi/lib')
 
 CONFIG['warnflags'].slice!(/-Wdeclaration-after-statement/)
 CONFIG['warnflags'].slice!(/-Wimplicit-function-declaration/)
-CONFIG['warnflags'] << '-fpermissive'
 
 have_library('NuoSqlApi')
 have_library('NuoRemote')

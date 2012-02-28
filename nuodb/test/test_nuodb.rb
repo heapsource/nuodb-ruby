@@ -5,35 +5,26 @@ require 'ostruct'
 require 'nuodb'
 
 CONFIG = OpenStruct.new
-CONFIG.host = ENV['NUODB_HOST'] || 'localhost'
-CONFIG.port = ENV['NUODB_PORT'] || '9999'
-CONFIG.user = ENV['NUODB_USER'] || 'root'
-CONFIG.pass = ENV['NUODB_PASS'] || ''
-CONFIG.database = ENV['NUODB_DATABASE'] || 'test'
+CONFIG.database = ENV['NUODB_DATABASE'] || 'test@localhost'
+CONFIG.username = ENV['NUODB_USERNAME'] || 'cloud'
+CONFIG.password = ENV['NUODB_PASSWORD'] || 'user'
 
 class TC_Nuodb < Test::Unit::TestCase
 
   def setup()
-    @host = CONFIG.host
-    @user = CONFIG.user
-    @pass = CONFIG.pass
-    @db   = CONFIG.database
+    @database = CONFIG.database
+    @username = CONFIG.username
+    @password = CONFIG.password
   end
 
   def teardown()
   end
 
   def test_version()
-    @options = [
-                :database => 'test',
-                :username => 'cloud',
-                :password => 'user'
-                ]
-
-    @env = Nuodb::SqlEnvironment.createSqlEnvironment @options
-    @con = @env.createSqlConnection @options
+    @env = Nuodb::SqlEnvironment.createSqlEnvironment
+    @con = @env.createSqlConnection @database, @username, @password
     @dmd = @con.getMetaData
-    assert_equal('%%PRODUCT_VERSION%%', @dmd.getDatabaseVersion)
+    assert_equal '%%PRODUCT_VERSION%%', @dmd.getDatabaseVersion
   end
 
 end
