@@ -27,5 +27,12 @@ class TC_Nuodb < Test::Unit::TestCase
     assert_equal '%%PRODUCT_VERSION%%', @dmd.getDatabaseVersion
   end
 
+  def test_create_statement()
+    @env = Nuodb::SqlEnvironment.createSqlEnvironment
+    @con = @env.createSqlConnection @database, @username, @password
+    @stmt = @con.createStatement
+    assert_not_nil @stmt
+  end
+
 end
 
