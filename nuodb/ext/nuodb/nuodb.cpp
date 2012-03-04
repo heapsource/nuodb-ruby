@@ -26,7 +26,8 @@ using nuodb::sqlapi::SqlStatement;
 
 using std::cout; // TODO temporary
 
-//-------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+// class building macros
 
 #define WRAPPER_FIELDS(RT)			\
   private: static VALUE type;			\
@@ -36,7 +37,6 @@ using std::cout; // TODO temporary
   public:							\
   WT(RT& arg) : ref(arg) {}					\
   static VALUE getType() { return type; }			\
-  static void init(VALUE module);				\
   static void release(WT* self) {				\
     cout << "DISABLED release " << #WT << " " << self << "\n";	\
     /* self->ref.release(); */					\
@@ -50,16 +50,36 @@ using std::cout; // TODO temporary
 #define WRAPPER_DEFINITION(WT)			\
   VALUE WT::type = 0;
 
+//------------------------------------------------------------------------------
+// utility function macros
+
 #define RETURN_WRAPPER(WT, func)				      \
   WT* w = new WT(func);						      \
-  VALUE obj = Data_Wrap_Struct(WT::getType(), 0, WT::release, w); \
+  VALUE obj = Data_Wrap_Struct(WT::getType(), 0, WT::release, w);     \
   rb_obj_call_init(obj, 0, 0);					      \
   return obj
+
+#define INIT_TYPE(name)						\
+  type = rb_define_class_under(module, name, rb_cObject)
+
+#define DEFINE_SINGLE(name, func, count)				\
+  rb_define_singleton_method(type, name, RUBY_METHOD_FUNC(func), count)
+
+#define DEFINE_METHOD(name, func, count)			\
+  rb_define_method(type, name, RUBY_METHOD_FUNC(func), count)
+
+//------------------------------------------------------------------------------
 
 class SqlDatabaseMetaDataWrapper
 {
   WRAPPER_FIELDS(SqlDatabaseMetaData)
   WRAPPER_METHODS(SqlDatabaseMetaDataWrapper, SqlDatabaseMetaData)
+
+  static void init(VALUE module)
+  {
+    INIT_TYPE("SqlDatabaseMetaData");
+    DEFINE_METHOD("getDatabaseVersion", getDatabaseVersion, 0);
+  }
 
   static VALUE getDatabaseVersion(VALUE self)
   {
@@ -68,38 +88,100 @@ class SqlDatabaseMetaDataWrapper
 };
 WRAPPER_DEFINITION(SqlDatabaseMetaDataWrapper)
 
+//------------------------------------------------------------------------------
+
 class SqlStatementWrapper
 {
   WRAPPER_FIELDS(SqlStatement)
   WRAPPER_METHODS(SqlStatementWrapper, SqlStatement)
+
+  static void init(VALUE module)
+  {
+    INIT_TYPE("SqlStatement");
+    // TODO void execute(char const * sql);
+    // TODO SqlResultSet & executeQuery(char const * sql);
+    // TODO void release();
+  }
 };
 WRAPPER_DEFINITION(SqlStatementWrapper)
+
+//------------------------------------------------------------------------------
 
 class SqlPreparedStatementWrapper
 {
   WRAPPER_FIELDS(SqlPreparedStatement)
   WRAPPER_METHODS(SqlPreparedStatementWrapper, SqlPreparedStatement)
+
+  static void init(VALUE module)
+  {
+    INIT_TYPE("SqlPreparedStatement");
+    // TODO void setInteger(size_t index, int32_t value);
+    // TODO void setDouble(size_t index, double value);
+    // TODO void setString(size_t index, char const * value);
+    // TODO void execute();
+    // TODO SqlResultSet & executeQuery();
+    // TODO void release();
+  }
 };
 WRAPPER_DEFINITION(SqlPreparedStatementWrapper)
+
+//------------------------------------------------------------------------------
 
 class SqlResultSetWrapper
 {
   WRAPPER_FIELDS(SqlResultSet);
   WRAPPER_METHODS(SqlResultSetWrapper, SqlResultSet);
+
+  static void init(VALUE module)
+  {
+    INIT_TYPE("SqlResultSet");
+    // TODO bool next();
+    // TODO size_t getColumnCount() const;
+    // TODO SqlColumnMetaData & getMetaData(size_t column) const;
+    // TODO int32_t getInteger(size_t column) const;
+    // TODO double getDouble(size_t column) const;
+    // TODO char const * getString(size_t column) const;
+    // TODO SqlDate const * getDate(size_t column) const;
+    // TODO void release();
+  }
 };
 WRAPPER_DEFINITION(SqlResultSetWrapper)
+
+//------------------------------------------------------------------------------
 
 class SqlColumnMetaDataWrapper
 {
   WRAPPER_FIELDS(SqlColumnMetaData);
   WRAPPER_METHODS(SqlColumnMetaDataWrapper, SqlColumnMetaData);
+
+  static void init(VALUE module)
+  {
+    INIT_TYPE("SqlColumnMetaData");
+    // TODO char const * getColumnName() const;
+    // TODO SqlType getType() const;
+    // TODO void release();
+  }
 };
 WRAPPER_DEFINITION(SqlColumnMetaDataWrapper)
+
+//------------------------------------------------------------------------------
 
 class SqlConnectionWrapper
 {
   WRAPPER_FIELDS(SqlConnection)
   WRAPPER_METHODS(SqlConnectionWrapper, SqlConnection)
+
+  static void init(VALUE module)
+  {
+    INIT_TYPE("SqlConnection");
+    DEFINE_METHOD("createStatement", createStatement, 0);
+    DEFINE_METHOD("createPreparedStatement", createPreparedStatement, 1);
+    // TODO void setAutoCommit(bool autoCommit = true);
+    // TODO bool hasAutoCommit() const;
+    // TODO void commit();
+    // TODO void rollback();
+    DEFINE_METHOD("getMetaData", getMetaData, 0);
+  }
 
   static VALUE createStatement(VALUE self)
   {
@@ -119,10 +201,19 @@ class SqlConnectionWrapper
 };
 WRAPPER_DEFINITION(SqlConnectionWrapper)
 
+//------------------------------------------------------------------------------
+
 class SqlEnvironmentWrapper
 {
   WRAPPER_FIELDS(SqlEnvironment)
   WRAPPER_METHODS(SqlEnvironmentWrapper, SqlEnvironment)
+
+  static void init(VALUE module)
+  {
+    INIT_TYPE("SqlEnvironment");
+    DEFINE_SINGLE("createSqlEnvironment", create, 0);
+    DEFINE_METHOD("createSqlConnection", createSqlConnection, 3);
+  }
 
   static VALUE create(VALUE klass)
   {
@@ -162,82 +253,7 @@ class SqlEnvironmentWrapper
 };
 WRAPPER_DEFINITION(SqlEnvironmentWrapper)
 
-//-------------------------------------------------------------------------
-// Initialization
-
-#define DEF_CLASS(name) \
-  type = rb_define_class_under(module, name, rb_cObject)
-
-#define DEF_SINGLETON(name, func, count) \
-  rb_define_singleton_method(type, name, RUBY_METHOD_FUNC(func), count)
-
-#define DEF_METHOD(name, func, count) \
-  rb_define_method(type, name, RUBY_METHOD_FUNC(func), count)
-
-void SqlEnvironmentWrapper::init(VALUE module)
-{
-  DEF_CLASS("SqlEnvironment");
-  DEF_SINGLETON("createSqlEnvironment", SqlEnvironmentWrapper::create, 0);
-  DEF_METHOD("createSqlConnection", SqlEnvironmentWrapper::createSqlConnection, 3);
-}
-
-void SqlConnectionWrapper::init(VALUE module)
-{
-  DEF_CLASS("SqlConnection");
-  DEF_METHOD("createStatement", SqlConnectionWrapper::createStatement, 0);
-  DEF_METHOD("createPreparedStatement", SqlConnectionWrapper::createPreparedStatement, 1);
-  // TODO void setAutoCommit(bool autoCommit = true);
-  // TODO bool hasAutoCommit() const;
-  // TODO void commit();
-  // TODO void rollback();
-  DEF_METHOD("getMetaData", SqlConnectionWrapper::getMetaData, 0);
-}
-
-void SqlDatabaseMetaDataWrapper::init(VALUE module)
-{
-  DEF_CLASS("SqlDatabaseMetaData");
-  DEF_METHOD("getDatabaseVersion", SqlDatabaseMetaDataWrapper::getDatabaseVersion, 0);
-}
-
-void SqlStatementWrapper::init(VALUE module)
-{
-  DEF_CLASS("SqlStatement");
-  // TODO void execute(char const * sql);
-  // TODO SqlResultSet & executeQuery(char const * sql);
-  // TODO void release();
-}
-
-void SqlPreparedStatementWrapper::init(VALUE module)
-{
-  DEF_CLASS("SqlPreparedStatement");
-  // TODO void setInteger(size_t index, int32_t value);
-  // TODO void setDouble(size_t index, double value);
-  // TODO void setString(size_t index, char const * value);
-  // TODO void execute();
-  // TODO SqlResultSet & executeQuery();
-  // TODO void release();
-}
-
-void SqlResultSetWrapper::init(VALUE module)
-{
-  DEF_CLASS("SqlResultSet");
-  // TODO bool next();
-  // TODO size_t getColumnCount() const;
-  // TODO SqlColumnMetaData & getMetaData(size_t column) const;
-  // TODO int32_t getInteger(size_t column) const;
-  // TODO double getDouble(size_t column) const;
-  // TODO char const * getString(size_t column) const;
-  // TODO SqlDate const * getDate(size_t column) const;
-  // TODO void release();
-}
-
-void SqlColumnMetaDataWrapper::init(VALUE module)
-{
-  DEF_CLASS("SqlColumnMetaData");
-  // TODO char const * getColumnName() const;
-  // TODO SqlType getType() const;
-  // TODO void release();
-}
+//------------------------------------------------------------------------------
 
 extern "C"
 void Init_nuodb(void)
@@ -252,4 +268,4 @@ void Init_nuodb(void)
   SqlColumnMetaDataWrapper::init(module);
 }
 
-//-------------------------------------------------------------------------
+//------------------------------------------------------------------------------
