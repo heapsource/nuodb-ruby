@@ -14,6 +14,7 @@ using nuodb::sqlapi::SqlDatabaseMetaData;
 using nuodb::sqlapi::SqlEnvironment;
 using nuodb::sqlapi::SqlOption;
 using nuodb::sqlapi::SqlOptionArray;
+using nuodb::sqlapi::SqlPreparedStatement;
 using nuodb::sqlapi::SqlStatement;
 
 #include <ruby.h>
@@ -25,15 +26,14 @@ using std::cout; // TODO temporary
 //-------------------------------------------------------------------------
 // Type definitions
 
-class ClassType
-{
-public:
-  VALUE type;
-};
-
-#define DECLARE_CLASS_TYPE(classname) \
-  class classname : public ClassType \
-  { public: void init(VALUE module); }
+#define DECLARE_CLASS_TYPE(classname)		\
+  class classname {				\
+    static VALUE type;				\
+  public:					\
+  static VALUE getType() { return type; }	\
+  static void init(VALUE module);		\
+  };						\
+  VALUE classname::type = 0
 
 DECLARE_CLASS_TYPE(SqlEnvironmentType);
 DECLARE_CLASS_TYPE(SqlConnectionType);
@@ -43,27 +43,13 @@ DECLARE_CLASS_TYPE(SqlPreparedStatementType);
 DECLARE_CLASS_TYPE(SqlResultSetType);
 DECLARE_CLASS_TYPE(SqlColumnMetaDataType);
 
-class AllTypes
-{
-  VALUE module;
-public:
-  SqlEnvironmentType env;
-  SqlConnectionType con;
-  SqlDatabaseMetaDataType dbmeta;
-  SqlStatementType stmt;
-  SqlPreparedStatementType pstmt;
-  SqlResultSetType rset;
-  SqlColumnMetaDataType colmeta;
-
-  void init();
-};
-
-static AllTypes types;
-
 //-------------------------------------------------------------------------
 
 #define WRAPPER_CTOR(WT, RT)			\
   WT(RT& arg) : ref(arg) {}
+
+#define WRAPPER_GET_RUBY_TYPE(TT)			\
+  static VALUE getRubyType() { return TT::getType(); }
 
 #define WRAPPER_RELEASE(WT)					\
   static void release(WT* self) {				\
@@ -78,17 +64,24 @@ static AllTypes types;
     return ((WT*) DATA_PTR(value))->ref;	\
   }
 
-#define WRAPPER_METHODS(WT, RT)			\
+#define WRAPPER_METHODS(WT, RT, TT)		\
   WRAPPER_CTOR(WT, RT)				\
+  WRAPPER_GET_RUBY_TYPE(TT)			\
   WRAPPER_RELEASE(WT)				\
   WRAPPER_AS_REF(WT, RT)
+
+#define RETURN_WRAPPER(WT, func)				      \
+  WT* w = new WT(func);						      \
+  VALUE obj = Data_Wrap_Struct(WT::getRubyType(), 0, WT::release, w); \
+  rb_obj_call_init(obj, 0, 0);					      \
+  return obj
 
 class SqlDatabaseMetaDataWrapper
 {
   SqlDatabaseMetaData& ref;
 
 public:
-  WRAPPER_METHODS(SqlDatabaseMetaDataWrapper, SqlDatabaseMetaData)
+  WRAPPER_METHODS(SqlDatabaseMetaDataWrapper, SqlDatabaseMetaData, SqlDatabaseMetaDataType)
 
   static VALUE getDatabaseVersion(VALUE self)
   {
@@ -100,7 +93,14 @@ class SqlStatementWrapper
 {
   SqlStatement& ref;
 public:
-  WRAPPER_METHODS(SqlStatementWrapper, SqlStatement)
+  WRAPPER_METHODS(SqlStatementWrapper, SqlStatement, SqlStatementType)
+};
+
+class SqlPreparedStatementWrapper
+{
+  SqlPreparedStatement& ref;
+public:
+  WRAPPER_METHODS(SqlPreparedStatementWrapper, SqlPreparedStatement, SqlPreparedStatementType)
 };
 
 class SqlConnectionWrapper
@@ -108,22 +108,22 @@ class SqlConnectionWrapper
   SqlConnection& ref;
 
 public:
-  WRAPPER_METHODS(SqlConnectionWrapper, SqlConnection)
+  WRAPPER_METHODS(SqlConnectionWrapper, SqlConnection, SqlConnectionType)
 
   static VALUE createStatement(VALUE self)
   {
-    SqlStatementWrapper* w = new SqlStatementWrapper(asRef(self).createStatement());
-    VALUE obj = Data_Wrap_Struct(types.stmt.type, 0, SqlStatementWrapper::release, w);
-    rb_obj_call_init(obj, 0, 0);
-    return obj;
+    RETURN_WRAPPER(SqlStatementWrapper, asRef(self).createStatement());
+  }
+
+  static VALUE createPreparedStatement(VALUE self, VALUE sqlValue)
+  {
+    const char* sql = StringValuePtr(sqlValue);
+    RETURN_WRAPPER(SqlPreparedStatementWrapper, asRef(self).createPreparedStatement(sql));
   }
 
   static VALUE getMetaData(VALUE self)
   {
-    SqlDatabaseMetaDataWrapper* w = new SqlDatabaseMetaDataWrapper(asRef(self).getMetaData());
-    VALUE obj = Data_Wrap_Struct(types.dbmeta.type, 0, SqlDatabaseMetaDataWrapper::release, w);
-    rb_obj_call_init(obj, 0, 0);
-    return obj;
+    RETURN_WRAPPER(SqlDatabaseMetaDataWrapper, asRef(self).getMetaData());
   }
 };
 
@@ -132,7 +132,7 @@ class SqlEnvironmentWrapper
   SqlEnvironment& ref;
 
 public:
-  WRAPPER_METHODS(SqlEnvironmentWrapper, SqlEnvironment)
+  WRAPPER_METHODS(SqlEnvironmentWrapper, SqlEnvironment, SqlEnvironmentType)
 
   static VALUE create(VALUE klass)
   {
@@ -140,10 +140,7 @@ public:
       SqlOptionArray optsArray;
       optsArray.count = 0;
 
-      SqlEnvironmentWrapper* w = new SqlEnvironmentWrapper(SqlEnvironment::createSqlEnvironment(&optsArray));
-      VALUE obj = Data_Wrap_Struct(types.env.type, 0, SqlEnvironmentWrapper::release, w);
-      rb_obj_call_init(obj, 0, 0);
-      return obj;
+      RETURN_WRAPPER(SqlEnvironmentWrapper, SqlEnvironment::createSqlEnvironment(&optsArray));
     } catch (ErrorCodeException & e) {
       rb_raise(rb_eRuntimeError, "failed to create SqlEnvironment: %s", e.what());
     }
@@ -167,10 +164,7 @@ public:
       optsArray.count = 3;
       optsArray.array = options;
 
-      SqlConnectionWrapper* con = new SqlConnectionWrapper(asRef(self).createSqlConnection(&optsArray));
-      VALUE obj = Data_Wrap_Struct(types.con.type, 0, SqlConnectionWrapper::release, con);
-      rb_obj_call_init(obj, 0, 0);
-      return obj;
+      RETURN_WRAPPER(SqlConnectionWrapper, asRef(self).createSqlConnection(&optsArray));
     } catch (ErrorCodeException & e) {
       rb_raise(rb_eRuntimeError, "failed to create SqlConnection: %s", e.what());
     }
@@ -200,8 +194,7 @@ void SqlConnectionType::init(VALUE module)
 {
   DEF_CLASS("SqlConnection");
   DEF_METHOD("createStatement", SqlConnectionWrapper::createStatement, 0);
-  // TODO SqlStatement & createStatement();
-  // TODO SqlPreparedStatement & createPreparedStatement(char const * sql);
+  DEF_METHOD("createPreparedStatement", SqlConnectionWrapper::createPreparedStatement, 1);
   // TODO void setAutoCommit(bool autoCommit = true);
   // TODO bool hasAutoCommit() const;
   // TODO void commit();
@@ -255,22 +248,17 @@ void SqlColumnMetaDataType::init(VALUE module)
   // TODO void release();
 }
 
-void AllTypes::init()
-{
-  module = rb_define_module("Nuodb");
-  env.init(module);
-  con.init(module);
-  dbmeta.init(module);
-  stmt.init(module);
-  pstmt.init(module);
-  rset.init(module);
-  colmeta.init(module);
-}
-
 extern "C"
 void Init_nuodb(void)
 {
-  types.init();
+  VALUE module = rb_define_module("Nuodb");
+  SqlEnvironmentType::init(module);
+  SqlConnectionType::init(module);
+  SqlDatabaseMetaDataType::init(module);
+  SqlStatementType::init(module);
+  SqlPreparedStatementType::init(module);
+  SqlResultSetType::init(module);
+  SqlColumnMetaDataType::init(module);
 }
 
 //-------------------------------------------------------------------------
