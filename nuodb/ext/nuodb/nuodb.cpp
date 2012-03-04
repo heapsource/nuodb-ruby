@@ -65,10 +65,11 @@ static AllTypes types;
 #define WRAPPER_CTOR(WT, RT)			\
   WT(RT& arg) : ref(arg) {}
 
-#define WRAPPER_RELEASE(WT)						\
-  static void release(WT* self) {					\
-    self->ref.release();						\
-    delete self;							\
+#define WRAPPER_RELEASE(WT)					\
+  static void release(WT* self) {				\
+    cout << "DISABLED release " << #WT << " " << self << "\n";	\
+    /* self->ref.release(); */					\
+    delete self;						\
   }
 
 #define WRAPPER_AS_REF(WT, RT)			\
@@ -144,7 +145,7 @@ public:
       rb_obj_call_init(obj, 0, 0);
       return obj;
     } catch (ErrorCodeException & e) {
-      rb_raise(rb_eRuntimeError, "failed to create SqlEnvironment: %s", e.what().c_str());
+      rb_raise(rb_eRuntimeError, "failed to create SqlEnvironment: %s", e.what());
     }
   }
 
@@ -171,7 +172,7 @@ public:
       rb_obj_call_init(obj, 0, 0);
       return obj;
     } catch (ErrorCodeException & e) {
-      rb_raise(rb_eRuntimeError, "failed to create SqlConnection: %s", e.what().c_str());
+      rb_raise(rb_eRuntimeError, "failed to create SqlConnection: %s", e.what());
     }
   }
 };
