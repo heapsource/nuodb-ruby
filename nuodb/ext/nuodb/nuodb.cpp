@@ -2,9 +2,16 @@
  * NuoDB Adapter
  */
 
+// TODO it would be better to do this in extconf.rb
+#if !defined(WIN32) && !defined(_WIN32)
+#define HAVE_STDINT_H 1
+#endif
+
+#include "nuodb/sqlapi/SqlResultSet.h"
 #include "nuodb/sqlapi/SqlEnvironment.h"
 #include "nuodb/sqlapi/SqlConnection.h"
 #include "nuodb/sqlapi/SqlStatement.h"
+#include "nuodb/sqlapi/SqlPreparedStatement.h"
 #include "nuodb/sqlapi/SqlDatabaseMetaData.h"
 #include "nuodb/sqlapi/SqlColumnMetaData.h"
 #include "nuodb/sqlapi/SqlExceptions.h"
@@ -19,6 +26,13 @@ using nuodb::sqlapi::SqlOptionArray;
 using nuodb::sqlapi::SqlPreparedStatement;
 using nuodb::sqlapi::SqlResultSet;
 using nuodb::sqlapi::SqlStatement;
+using nuodb::sqlapi::SqlType;
+using nuodb::sqlapi::SQL_INTEGER;
+using nuodb::sqlapi::SQL_DOUBLE;
+using nuodb::sqlapi::SQL_STRING;
+using nuodb::sqlapi::SQL_DATE;
+using nuodb::sqlapi::SQL_TIME;
+using nuodb::sqlapi::SQL_DATETIME;
 
 #include <ruby.h>
 
@@ -29,23 +43,22 @@ using std::cout; // TODO temporary
 //------------------------------------------------------------------------------
 // class building macros
 
-#define WRAPPER_FIELDS(RT)			\
-  private: static VALUE type;			\
-  RT& ref;
-
-#define WRAPPER_METHODS(WT, RT)					\
-  public:							\
-  WT(RT& arg) : ref(arg) {}					\
-  static VALUE getType() { return type; }			\
-  static void release(WT* self) {				\
-    cout << "DISABLED release " << #WT << " " << self << "\n";	\
-    /* self->ref.release(); */					\
-    delete self;						\
-  }								\
-  static RT& asRef(VALUE value) {				\
-    Check_Type(value, T_DATA);					\
-    return ((WT*) DATA_PTR(value))->ref;			\
-  }
+#define WRAPPER_COMMON(WT, RT)					\
+  private:							\
+  static VALUE type;						\
+  RT& ref;							\
+public:								\
+ WT(RT& arg) : ref(arg) {}					\
+ static VALUE getRubyType() { return type; }			\
+ static void release(WT* self) {				\
+   cout << "DISABLED release " << #WT << " " << self << "\n";	\
+   /* self->ref.release(); */					\
+   delete self;							\
+ }								\
+ static RT& asRef(VALUE value) {				\
+   Check_Type(value, T_DATA);					\
+   return ((WT*) DATA_PTR(value))->ref;				\
+ }
 
 #define WRAPPER_DEFINITION(WT)			\
   VALUE WT::type = 0;
@@ -53,11 +66,14 @@ using std::cout; // TODO temporary
 //------------------------------------------------------------------------------
 // utility function macros
 
-#define RETURN_WRAPPER(WT, func)				      \
-  WT* w = new WT(func);						      \
-  VALUE obj = Data_Wrap_Struct(WT::getType(), 0, WT::release, w);     \
-  rb_obj_call_init(obj, 0, 0);					      \
+#define RETURN_WRAPPER(WT, func)					\
+  WT* w = new WT(func);							\
+  VALUE obj = Data_Wrap_Struct(WT::getRubyType(), 0, WT::release, w);	\
+  rb_obj_call_init(obj, 0, 0);						\
   return obj
+
+#define SYMBOL_OF(value)			\
+  ID2SYM(rb_intern(#value))
 
 #define INIT_TYPE(name)						\
   type = rb_define_class_under(module, name, rb_cObject)
@@ -72,8 +88,7 @@ using std::cout; // TODO temporary
 
 class SqlDatabaseMetaDataWrapper
 {
-  WRAPPER_FIELDS(SqlDatabaseMetaData)
-  WRAPPER_METHODS(SqlDatabaseMetaDataWrapper, SqlDatabaseMetaData)
+  WRAPPER_COMMON(SqlDatabaseMetaDataWrapper, SqlDatabaseMetaData)
 
   static void init(VALUE module)
   {
@@ -91,22 +106,104 @@ WRAPPER_DEFINITION(SqlDatabaseMetaDataWrapper)
 
 //------------------------------------------------------------------------------
 
+class SqlColumnMetaDataWrapper
+{
+  WRAPPER_COMMON(SqlColumnMetaDataWrapper, SqlColumnMetaData)
+
+  static void init(VALUE module)
+  {
+    INIT_TYPE("SqlColumnMetaData");
+    DEFINE_METHOD(getColumnName, 0);
+    DEFINE_METHOD(getType, 0);
+  }
+
+  static VALUE getColumnName(VALUE self)
+  {
+    return rb_str_new2(asRef(self).getColumnName());
+  }
+
+  static VALUE getType(VALUE self)
+  {
+    SqlType t = asRef(self).getType();
+    switch(t)
+      {
+      case SQL_INTEGER:
+	return SYMBOL_OF(SQL_INTEGER);
+      case SQL_DOUBLE:
+	return SYMBOL_OF(SQL_DOUBLE);
+      case SQL_STRING:
+	return SYMBOL_OF(SQL_STRING);
+      case SQL_DATE:
+	return SYMBOL_OF(SQL_DATE);
+      case SQL_TIME:
+	return SYMBOL_OF(SQL_TIME);
+      case SQL_DATETIME:
+	return SYMBOL_OF(SQL_DATETIME);
+      default:
+	rb_raise(rb_eRuntimeError, "invalid sql type: %d", t);
+      }
+  }
+};
+
+WRAPPER_DEFINITION(SqlColumnMetaDataWrapper)
+
+//------------------------------------------------------------------------------
+
 class SqlResultSetWrapper
 {
-  WRAPPER_FIELDS(SqlResultSet)
-  WRAPPER_METHODS(SqlResultSetWrapper, SqlResultSet)
+  WRAPPER_COMMON(SqlResultSetWrapper, SqlResultSet)
 
   static void init(VALUE module)
   {
     INIT_TYPE("SqlResultSet");
-    // TODO bool next();
-    // TODO size_t getColumnCount() const;
-    // TODO SqlColumnMetaData & getMetaData(size_t column) const;
-    // TODO int32_t getInteger(size_t column) const;
-    // TODO double getDouble(size_t column) const;
-    // TODO char const * getString(size_t column) const;
+    DEFINE_METHOD(next, 0);
+    DEFINE_METHOD(getColumnCount, 0);
+    DEFINE_METHOD(getMetaData, 1);
+    DEFINE_METHOD(getInteger, 1);
+    DEFINE_METHOD(getDouble, 1);
+    DEFINE_METHOD(getString, 1);
+    DEFINE_METHOD(getDate, 1);
+  }
+
+  static VALUE next(VALUE self)
+  {
+    return asRef(self).next() ? Qtrue: Qfalse;
+  }
+
+  static VALUE getColumnCount(VALUE self)
+  {
+    return UINT2NUM(asRef(self).getColumnCount());
+  }
+
+  static VALUE getMetaData(VALUE self, VALUE columnValue)
+  {
+    size_t column = NUM2UINT(columnValue);
+    RETURN_WRAPPER(SqlColumnMetaDataWrapper, asRef(self).getMetaData(column));
+  }
+
+  static VALUE getInteger(VALUE self, VALUE columnValue)
+  {
+    size_t column = NUM2UINT(columnValue);
+    return INT2NUM(asRef(self).getInteger(column));
+  }
+
+  static VALUE getDouble(VALUE self, VALUE columnValue)
+  {
+    size_t column = NUM2UINT(columnValue);
+    return rb_float_new(asRef(self).getDouble(column));
+  }
+
+  static VALUE getString(VALUE self, VALUE columnValue)
+  {
+    size_t column = NUM2UINT(columnValue);
+    return rb_str_new2(asRef(self).getString(column));
+  }
+
+  static VALUE getDate(VALUE self, VALUE columnValue)
+  {
     // TODO SqlDate const * getDate(size_t column) const;
-    // TODO void release();
+    size_t column = NUM2UINT(columnValue);
+    return Qnil;
   }
 };
 
@@ -116,8 +213,7 @@ WRAPPER_DEFINITION(SqlResultSetWrapper)
 
 class SqlStatementWrapper
 {
-  WRAPPER_FIELDS(SqlStatement)
-  WRAPPER_METHODS(SqlStatementWrapper, SqlStatement)
+  WRAPPER_COMMON(SqlStatementWrapper, SqlStatement)
 
   static void init(VALUE module)
   {
@@ -126,10 +222,11 @@ class SqlStatementWrapper
     DEFINE_METHOD(executeQuery, 1);
   }
 
-  static void execute(VALUE self, VALUE sqlValue)
+  static VALUE execute(VALUE self, VALUE sqlValue)
   {
     const char* sql = StringValuePtr(sqlValue);
     asRef(self).execute(sql);
+    return Qnil;
   }
 
   static VALUE executeQuery(VALUE self, VALUE sqlValue)
@@ -145,18 +242,51 @@ WRAPPER_DEFINITION(SqlStatementWrapper)
 
 class SqlPreparedStatementWrapper
 {
-  WRAPPER_FIELDS(SqlPreparedStatement)
-  WRAPPER_METHODS(SqlPreparedStatementWrapper, SqlPreparedStatement)
+  WRAPPER_COMMON(SqlPreparedStatementWrapper, SqlPreparedStatement)
 
   static void init(VALUE module)
   {
     INIT_TYPE("SqlPreparedStatement");
-    // TODO void setInteger(size_t index, int32_t value);
-    // TODO void setDouble(size_t index, double value);
-    // TODO void setString(size_t index, char const * value);
-    // TODO void execute();
-    // TODO SqlResultSet & executeQuery();
-    // TODO void release();
+    DEFINE_METHOD(setInteger, 2);
+    DEFINE_METHOD(setDouble, 2);
+    DEFINE_METHOD(setString, 2);
+    DEFINE_METHOD(execute, 0);
+    DEFINE_METHOD(executeQuery, 0);
+  }
+
+  static VALUE setInteger(VALUE self, VALUE indexValue, VALUE valueValue)
+  {
+    size_t index = NUM2UINT(indexValue);
+    int32_t value = NUM2INT(valueValue);
+    asRef(self).setInteger(index, value);
+    return Qnil;
+  }
+
+  static VALUE setDouble(VALUE self, VALUE indexValue, VALUE valueValue)
+  {
+    size_t index = NUM2UINT(indexValue);
+    double value = NUM2DBL(valueValue);
+    asRef(self).setDouble(index, value);
+    return Qnil;
+  }
+
+  static VALUE setString(VALUE self, VALUE indexValue, VALUE valueValue)
+  {
+    size_t index = NUM2UINT(indexValue);
+    char const* value = RSTRING_PTR(valueValue);
+    asRef(self).setString(index, value);
+    return Qnil;
+  }
+
+  static VALUE execute(VALUE self)
+  {
+    asRef(self).execute();
+    return Qnil;
+  }
+
+  static VALUE executeQuery(VALUE self)
+  {
+    RETURN_WRAPPER(SqlResultSetWrapper, asRef(self).executeQuery());
   }
 };
 
@@ -164,38 +294,19 @@ WRAPPER_DEFINITION(SqlPreparedStatementWrapper)
 
 //------------------------------------------------------------------------------
 
-class SqlColumnMetaDataWrapper
-{
-  WRAPPER_FIELDS(SqlColumnMetaData)
-  WRAPPER_METHODS(SqlColumnMetaDataWrapper, SqlColumnMetaData)
-
-  static void init(VALUE module)
-  {
-    INIT_TYPE("SqlColumnMetaData");
-    // TODO char const * getColumnName() const;
-    // TODO SqlType getType() const;
-    // TODO void release();
-  }
-};
-
-WRAPPER_DEFINITION(SqlColumnMetaDataWrapper)
-
-//------------------------------------------------------------------------------
-
 class SqlConnectionWrapper
 {
-  WRAPPER_FIELDS(SqlConnection)
-  WRAPPER_METHODS(SqlConnectionWrapper, SqlConnection)
+  WRAPPER_COMMON(SqlConnectionWrapper, SqlConnection)
 
   static void init(VALUE module)
   {
     INIT_TYPE("SqlConnection");
     DEFINE_METHOD(createStatement, 0);
     DEFINE_METHOD(createPreparedStatement, 1);
-    // TODO void setAutoCommit(bool autoCommit = true);
-    // TODO bool hasAutoCommit() const;
-    // TODO void commit();
-    // TODO void rollback();
+    DEFINE_METHOD(setAutoCommit, 1);
+    DEFINE_METHOD(hasAutoCommit, 0);
+    DEFINE_METHOD(commit, 0);
+    DEFINE_METHOD(rollback, 0);
     DEFINE_METHOD(getMetaData, 0);
   }
 
@@ -210,6 +321,30 @@ class SqlConnectionWrapper
     RETURN_WRAPPER(SqlPreparedStatementWrapper, asRef(self).createPreparedStatement(sql));
   }
 
+  static VALUE setAutoCommit(VALUE self, VALUE autoCommitValue)
+  {
+    bool autoCommit = NUM2INT(autoCommitValue);
+    asRef(self).setAutoCommit(autoCommit);
+    return Qnil;
+  }
+
+  static VALUE hasAutoCommit(VALUE self)
+  {
+    return INT2NUM(asRef(self).hasAutoCommit());
+  }
+
+  static VALUE commit(VALUE self)
+  {
+    asRef(self).commit();
+    return Qnil;
+  }
+
+  static VALUE rollback(VALUE self)
+  {
+    asRef(self).rollback();
+    return Qnil;
+  }
+
   static VALUE getMetaData(VALUE self)
   {
     RETURN_WRAPPER(SqlDatabaseMetaDataWrapper, asRef(self).getMetaData());
@@ -222,8 +357,7 @@ WRAPPER_DEFINITION(SqlConnectionWrapper)
 
 class SqlEnvironmentWrapper
 {
-  WRAPPER_FIELDS(SqlEnvironment)
-  WRAPPER_METHODS(SqlEnvironmentWrapper, SqlEnvironment)
+  WRAPPER_COMMON(SqlEnvironmentWrapper, SqlEnvironment)
 
   static void init(VALUE module)
   {

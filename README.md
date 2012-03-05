@@ -19,6 +19,9 @@ http://rice.rubyforge.org/
 http://www.ruby-forum.com/topic/146652
 http://steve.vinoski.net/pdf/IEEE-Ruby_Extensions.pdf
 http://www.opensource.apple.com/source/ruby/ruby-4/ruby/ext/readline/readline.c?txt
+http://blog.jacius.info/ruby-c-extension-cheat-sheet/
+http://people.apache.org/~rooneg/talks/ruby-extensions/ruby-extensions.html
+http://clalance.blogspot.com/2011/01/writing-ruby-extensions-in-c-part-5.html
 
 
 DBD/DBI/AR Stack:
@@ -44,3 +47,4 @@ http://guides.rubygems.org/c-extensions/
 http://guides.rubygems.org/c-extensions/#naming
 http://tenderlovemaking.com/2009/12/18/writing-ruby-c-extensions-part-1/
 http://tenderlovemaking.com/2010/12/11/writing-ruby-c-extensions-part-2/
+
