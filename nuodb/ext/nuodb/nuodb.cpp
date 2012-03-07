@@ -36,10 +36,6 @@ using nuodb::sqlapi::SQL_DATETIME;
 
 #include <ruby.h>
 
-#include <iostream> // TODO temporary
-
-using std::cout; // TODO temporary
-
 //------------------------------------------------------------------------------
 // class building macros
 
@@ -51,7 +47,7 @@ public:								\
  WT(RT& arg) : ref(arg) {}					\
  static VALUE getRubyType() { return type; }			\
  static void release(WT* self) {				\
-   cout << "DISABLED release " << #WT << " " << self << "\n";	\
+   rb_warn("DISABLED release %s %p", #WT, self);		\
    /* self->ref.release(); */					\
    delete self;							\
  }								\
@@ -203,7 +199,7 @@ class SqlResultSetWrapper
   {
     // TODO SqlDate const * getDate(size_t column) const;
     size_t column = NUM2UINT(columnValue);
-    return Qnil;
+    rb_notimplement();
   }
 };
 
@@ -225,7 +221,11 @@ class SqlStatementWrapper
   static VALUE execute(VALUE self, VALUE sqlValue)
   {
     const char* sql = StringValuePtr(sqlValue);
-    asRef(self).execute(sql);
+    try {
+      asRef(self).execute(sql);
+    } catch (ErrorCodeException & e) {
+      rb_raise(rb_eRuntimeError, "failed to execute \"%s\": %s", sql, e.what());
+    }
     return Qnil;
   }
 
@@ -323,14 +323,15 @@ class SqlConnectionWrapper
 
   static VALUE setAutoCommit(VALUE self, VALUE autoCommitValue)
   {
-    bool autoCommit = NUM2INT(autoCommitValue);
+    bool autoCommit = !(RB_TYPE_P(autoCommitValue, T_FALSE) || 
+			RB_TYPE_P(autoCommitValue, T_NIL));
     asRef(self).setAutoCommit(autoCommit);
     return Qnil;
   }
 
   static VALUE hasAutoCommit(VALUE self)
   {
-    return INT2NUM(asRef(self).hasAutoCommit());
+    return asRef(self).hasAutoCommit() ? Qtrue : Qfalse;
   }
 
   static VALUE commit(VALUE self)

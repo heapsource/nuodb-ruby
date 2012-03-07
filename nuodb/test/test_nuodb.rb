@@ -27,12 +27,43 @@ class TC_Nuodb < Test::Unit::TestCase
     assert_equal '%%PRODUCT_VERSION%%', @dmd.getDatabaseVersion
   end
 
-  def test_create_statement()
+  def test_select_from_dual()
     @env = Nuodb::SqlEnvironment.createSqlEnvironment
     @con = @env.createSqlConnection @database, @username, @password
     @stmt = @con.createStatement
     assert_not_nil @stmt
+    @stmt.execute "select 1 from dual"
   end
+
+  def test_auto_commit_flag()
+    @env = Nuodb::SqlEnvironment.createSqlEnvironment
+    @con = @env.createSqlConnection @database, @username, @password
+    assert @con.hasAutoCommit
+    @con.setAutoCommit false
+    assert !@con.hasAutoCommit
+    @con.setAutoCommit true
+    assert @con.hasAutoCommit
+  end
+
+  def test_statement()
+    @env = Nuodb::SqlEnvironment.createSqlEnvironment
+    @con = @env.createSqlConnection @database, @username, @password
+    @stmt = @con.createStatement
+    assert_not_nil @stmt
+    @stmt.execute "drop table test_nuodb if exists"
+    @stmt.execute <<EOS
+create table test_nuodb (
+  i integer,
+  d double,
+  s string,
+  primary key (i))
+EOS
+    # TODO SqlConnection.createPreparedStatement
+    # TODO SqlStatement.executeQuery
+  end
+
+  # TODO SqlConnection.commit
+  # TODO SqlConnection.rollback
 
   # SqlResultSetWrapper
   # TODO bool next();
@@ -41,6 +72,7 @@ class TC_Nuodb < Test::Unit::TestCase
   # TODO int32_t getInteger(size_t column) const;
   # TODO double getDouble(size_t column) const;
   # TODO char const * getString(size_t column) const;
+  # TODO SqlDate const * getDate(size_t column) const;
 
   # SqlColumnMetaDataWrapper
   # TODO char const * getColumnName() const;
@@ -52,12 +84,6 @@ class TC_Nuodb < Test::Unit::TestCase
   # TODO void setString(size_t index, char const * value);
   # TODO void execute();
   # TODO SqlResultSet & executeQuery();
-
-  # SqlConnectionWrapper
-  # TODO void setAutoCommit(bool autoCommit = true);
-  # TODO bool hasAutoCommit() const;
-  # TODO void commit();
-  # TODO void rollback();
 
 end
 
