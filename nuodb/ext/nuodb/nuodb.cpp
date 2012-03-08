@@ -94,7 +94,11 @@ class SqlDatabaseMetaDataWrapper
 
   static VALUE getDatabaseVersion(VALUE self)
   {
-    return rb_str_new2(asRef(self).getDatabaseVersion());
+    try {
+      return rb_str_new2(asRef(self).getDatabaseVersion());
+    } catch (ErrorCodeException & e) {
+      rb_raise(rb_eRuntimeError, "getDatabaseVersion failed: %s", e.what());
+    }
   }
 };
 
@@ -115,7 +119,11 @@ class SqlColumnMetaDataWrapper
 
   static VALUE getColumnName(VALUE self)
   {
-    return rb_str_new2(asRef(self).getColumnName());
+    try {
+      return rb_str_new2(asRef(self).getColumnName());
+    } catch (ErrorCodeException & e) {
+      rb_raise(rb_eRuntimeError, "getColumnName failed: %s", e.what());
+    }
   }
 
   static VALUE getType(VALUE self)
@@ -163,43 +171,71 @@ class SqlResultSetWrapper
 
   static VALUE next(VALUE self)
   {
-    return asRef(self).next() ? Qtrue: Qfalse;
+    try {
+      return asRef(self).next() ? Qtrue: Qfalse;
+    } catch (ErrorCodeException & e) {
+      rb_raise(rb_eRuntimeError, "next failed: %s", e.what());
+    }
   }
 
   static VALUE getColumnCount(VALUE self)
   {
-    return UINT2NUM(asRef(self).getColumnCount());
+    try {
+      return UINT2NUM(asRef(self).getColumnCount());
+    } catch (ErrorCodeException & e) {
+      rb_raise(rb_eRuntimeError, "getColumnCount failed: %s", e.what());
+    }
   }
 
   static VALUE getMetaData(VALUE self, VALUE columnValue)
   {
     size_t column = NUM2UINT(columnValue);
-    RETURN_WRAPPER(SqlColumnMetaDataWrapper, asRef(self).getMetaData(column));
+    try {
+      RETURN_WRAPPER(SqlColumnMetaDataWrapper, asRef(self).getMetaData(column));
+    } catch (ErrorCodeException & e) {
+      rb_raise(rb_eRuntimeError, "getMetaData(%ld) failed: %s", column, e.what());
+    }
   }
 
   static VALUE getInteger(VALUE self, VALUE columnValue)
   {
     size_t column = NUM2UINT(columnValue);
-    return INT2NUM(asRef(self).getInteger(column));
+    try {
+      return INT2NUM(asRef(self).getInteger(column));
+    } catch (ErrorCodeException & e) {
+      rb_raise(rb_eRuntimeError, "getInteger(%ld) failed: %s", column, e.what());
+    }
   }
 
   static VALUE getDouble(VALUE self, VALUE columnValue)
   {
     size_t column = NUM2UINT(columnValue);
-    return rb_float_new(asRef(self).getDouble(column));
+    try {
+      return rb_float_new(asRef(self).getDouble(column));
+    } catch (ErrorCodeException & e) {
+      rb_raise(rb_eRuntimeError, "getDouble(%ld) failed: %s", column, e.what());
+    }
   }
 
   static VALUE getString(VALUE self, VALUE columnValue)
   {
     size_t column = NUM2UINT(columnValue);
-    return rb_str_new2(asRef(self).getString(column));
+    try {
+      return rb_str_new2(asRef(self).getString(column));
+    } catch (ErrorCodeException & e) {
+      rb_raise(rb_eRuntimeError, "getString(%ld) failed: %s", column, e.what());
+    }
   }
 
   static VALUE getDate(VALUE self, VALUE columnValue)
   {
-    // TODO SqlDate const * getDate(size_t column) const;
     size_t column = NUM2UINT(columnValue);
-    rb_notimplement();
+    try {
+      // TODO SqlDate const * getDate(size_t column) const;
+      rb_notimplement();
+    } catch (ErrorCodeException & e) {
+      rb_raise(rb_eRuntimeError, "getDate(%ld) failed: %s", column, e.what());
+    }
   }
 };
 
@@ -224,7 +260,7 @@ class SqlStatementWrapper
     try {
       asRef(self).execute(sql);
     } catch (ErrorCodeException & e) {
-      rb_raise(rb_eRuntimeError, "failed to execute \"%s\": %s", sql, e.what());
+      rb_raise(rb_eRuntimeError, "execute(\"%s\") failed: %s", sql, e.what());
     }
     return Qnil;
   }
@@ -232,7 +268,11 @@ class SqlStatementWrapper
   static VALUE executeQuery(VALUE self, VALUE sqlValue)
   {
     const char* sql = StringValuePtr(sqlValue);
-    RETURN_WRAPPER(SqlResultSetWrapper, asRef(self).executeQuery(sql));
+    try {
+      RETURN_WRAPPER(SqlResultSetWrapper, asRef(self).executeQuery(sql));
+    } catch (ErrorCodeException & e) {
+      rb_raise(rb_eRuntimeError, "executeQuery(\"%s\") failed: %s", sql, e.what());
+    }
   }
 };
 
@@ -258,35 +298,55 @@ class SqlPreparedStatementWrapper
   {
     size_t index = NUM2UINT(indexValue);
     int32_t value = NUM2INT(valueValue);
-    asRef(self).setInteger(index, value);
-    return Qnil;
+    try {
+      asRef(self).setInteger(index, value);
+      return Qnil;
+    } catch (ErrorCodeException & e) {
+      rb_raise(rb_eRuntimeError, "setInteger(%ld, %d) failed: %s", index, value, e.what());
+    }
   }
 
   static VALUE setDouble(VALUE self, VALUE indexValue, VALUE valueValue)
   {
     size_t index = NUM2UINT(indexValue);
     double value = NUM2DBL(valueValue);
-    asRef(self).setDouble(index, value);
-    return Qnil;
+    try {
+      asRef(self).setDouble(index, value);
+      return Qnil;
+    } catch (ErrorCodeException & e) {
+      rb_raise(rb_eRuntimeError, "setDouble(%ld, %g) failed: %s", index, value, e.what());
+    }
   }
 
   static VALUE setString(VALUE self, VALUE indexValue, VALUE valueValue)
   {
     size_t index = NUM2UINT(indexValue);
     char const* value = RSTRING_PTR(valueValue);
-    asRef(self).setString(index, value);
-    return Qnil;
+    try {
+      asRef(self).setString(index, value);
+      return Qnil;
+    } catch (ErrorCodeException & e) {
+      rb_raise(rb_eRuntimeError, "setString(%ld, \"%s\") failed: %s", index, value, e.what());
+    }
   }
 
   static VALUE execute(VALUE self)
   {
-    asRef(self).execute();
-    return Qnil;
+    try {
+      asRef(self).execute();
+      return Qnil;
+    } catch (ErrorCodeException & e) {
+      rb_raise(rb_eRuntimeError, "execute failed: %s", e.what());
+    }
   }
 
   static VALUE executeQuery(VALUE self)
   {
-    RETURN_WRAPPER(SqlResultSetWrapper, asRef(self).executeQuery());
+    try {
+      RETURN_WRAPPER(SqlResultSetWrapper, asRef(self).executeQuery());
+    } catch (ErrorCodeException & e) {
+      rb_raise(rb_eRuntimeError, "executeQuery failed: %s", e.what());
+    }
   }
 };
 
@@ -312,43 +372,71 @@ class SqlConnectionWrapper
 
   static VALUE createStatement(VALUE self)
   {
-    RETURN_WRAPPER(SqlStatementWrapper, asRef(self).createStatement());
+    try {
+      RETURN_WRAPPER(SqlStatementWrapper, asRef(self).createStatement());
+    } catch (ErrorCodeException & e) {
+      rb_raise(rb_eRuntimeError, "createStatement failed: %s", e.what());
+    }
   }
 
   static VALUE createPreparedStatement(VALUE self, VALUE sqlValue)
   {
     const char* sql = StringValuePtr(sqlValue);
-    RETURN_WRAPPER(SqlPreparedStatementWrapper, asRef(self).createPreparedStatement(sql));
+    try {
+      RETURN_WRAPPER(SqlPreparedStatementWrapper, asRef(self).createPreparedStatement(sql));
+    } catch (ErrorCodeException & e) {
+      rb_raise(rb_eRuntimeError, "createPreparedStatement(\"%s\") failed: %s", sql, e.what());
+    }
   }
 
   static VALUE setAutoCommit(VALUE self, VALUE autoCommitValue)
   {
     bool autoCommit = !(RB_TYPE_P(autoCommitValue, T_FALSE) || 
 			RB_TYPE_P(autoCommitValue, T_NIL));
-    asRef(self).setAutoCommit(autoCommit);
-    return Qnil;
+    try {
+      asRef(self).setAutoCommit(autoCommit);
+      return Qnil;
+    } catch (ErrorCodeException & e) {
+      rb_raise(rb_eRuntimeError, "setAutoCommit(%d) failed: %s", autoCommit, e.what());
+    }
   }
 
   static VALUE hasAutoCommit(VALUE self)
   {
-    return asRef(self).hasAutoCommit() ? Qtrue : Qfalse;
+    try {
+      return asRef(self).hasAutoCommit() ? Qtrue : Qfalse;
+    } catch (ErrorCodeException & e) {
+      rb_raise(rb_eRuntimeError, "hasAutoCommit failed: %s", e.what());
+    }
   }
 
   static VALUE commit(VALUE self)
   {
-    asRef(self).commit();
-    return Qnil;
+    try {
+      asRef(self).commit();
+      return Qnil;
+    } catch (ErrorCodeException & e) {
+      rb_raise(rb_eRuntimeError, "commit failed: %s", e.what());
+    }
   }
 
   static VALUE rollback(VALUE self)
   {
-    asRef(self).rollback();
-    return Qnil;
+    try {
+      asRef(self).rollback();
+      return Qnil;
+    } catch (ErrorCodeException & e) {
+      rb_raise(rb_eRuntimeError, "rollback failed: %s", e.what());
+    }
   }
 
   static VALUE getMetaData(VALUE self)
   {
-    RETURN_WRAPPER(SqlDatabaseMetaDataWrapper, asRef(self).getMetaData());
+    try {
+      RETURN_WRAPPER(SqlDatabaseMetaDataWrapper, asRef(self).getMetaData());
+    } catch (ErrorCodeException & e) {
+      rb_raise(rb_eRuntimeError, "getMetaData failed: %s", e.what());
+    }
   }
 };
 
@@ -364,10 +452,10 @@ class SqlEnvironmentWrapper
   {
     INIT_TYPE("SqlEnvironment");
     DEFINE_SINGLE(createSqlEnvironment, 0);
-    DEFINE_METHOD(createSqlConnection, 3);
+    DEFINE_METHOD(createSqlConnection, 4);
   }
 
-  static VALUE createSqlEnvironment(VALUE klass)
+  static VALUE createSqlEnvironment(VALUE self)
   {
     try {
       SqlOptionArray optsArray;
@@ -375,31 +463,40 @@ class SqlEnvironmentWrapper
 
       RETURN_WRAPPER(SqlEnvironmentWrapper, SqlEnvironment::createSqlEnvironment(&optsArray));
     } catch (ErrorCodeException & e) {
-      rb_raise(rb_eRuntimeError, "failed to create SqlEnvironment: %s", e.what());
+      rb_raise(rb_eRuntimeError, "createSqlEnvironment failed: %s", e.what());
     }
   }
 
-  static VALUE createSqlConnection(VALUE self, VALUE database, VALUE username, VALUE password)
+  static VALUE createSqlConnection(VALUE self, VALUE databaseValue, VALUE schemaValue,
+				   VALUE usernameValue, VALUE passwordValue)
   {
+    char const* database = StringValuePtr(databaseValue);
+    char const* schema = StringValuePtr(schemaValue);
+    char const* username = StringValuePtr(usernameValue);
+    char const* password = StringValuePtr(passwordValue);
     try {
-      SqlOption options[3];
+      SqlOption options[4];
 
       options[0].option = "database";
-      options[0].extra = (void*) StringValuePtr(database);
+      options[0].extra = (void*) database;
 
-      options[1].option = "user";
-      options[1].extra = (void*) StringValuePtr(username);
+      options[1].option = "schema";
+      options[1].extra = (void*) schema;
 
-      options[2].option = "password";
-      options[2].extra = (void*) StringValuePtr(password);
+      options[2].option = "user";
+      options[2].extra = (void*) username;
+
+      options[3].option = "password";
+      options[3].extra = (void*) password;
 
       SqlOptionArray optsArray;
-      optsArray.count = 3;
+      optsArray.count = 4;
       optsArray.array = options;
 
       RETURN_WRAPPER(SqlConnectionWrapper, asRef(self).createSqlConnection(&optsArray));
     } catch (ErrorCodeException & e) {
-      rb_raise(rb_eRuntimeError, "failed to create SqlConnection: %s", e.what());
+      rb_raise(rb_eRuntimeError, "createSqlConnection(\"%s\", \"%s\", \"%s\", ...) failed: %s",
+	       database, schema, username, e.what());
     }
   }
 };

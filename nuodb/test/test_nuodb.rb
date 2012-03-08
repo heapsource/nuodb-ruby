@@ -6,6 +6,7 @@ require 'nuodb'
 
 CONFIG = OpenStruct.new
 CONFIG.database = ENV['NUODB_DATABASE'] || 'test@localhost'
+CONFIG.schema   = ENV['NUODB_SCHEMA']   || 'test'
 CONFIG.username = ENV['NUODB_USERNAME'] || 'cloud'
 CONFIG.password = ENV['NUODB_PASSWORD'] || 'user'
 
@@ -13,6 +14,7 @@ class TC_Nuodb < Test::Unit::TestCase
 
   def setup()
     @database = CONFIG.database
+    @schema   = CONFIG.schema
     @username = CONFIG.username
     @password = CONFIG.password
   end
@@ -22,14 +24,14 @@ class TC_Nuodb < Test::Unit::TestCase
 
   def test_version()
     @env = Nuodb::SqlEnvironment.createSqlEnvironment
-    @con = @env.createSqlConnection @database, @username, @password
+    @con = @env.createSqlConnection @database, @schema, @username, @password
     @dmd = @con.getMetaData
     assert_equal '%%PRODUCT_VERSION%%', @dmd.getDatabaseVersion
   end
 
   def test_select_from_dual()
     @env = Nuodb::SqlEnvironment.createSqlEnvironment
-    @con = @env.createSqlConnection @database, @username, @password
+    @con = @env.createSqlConnection @database, @schema, @username, @password
     @stmt = @con.createStatement
     assert_not_nil @stmt
     @stmt.execute "select 1 from dual"
@@ -37,7 +39,7 @@ class TC_Nuodb < Test::Unit::TestCase
 
   def test_auto_commit_flag()
     @env = Nuodb::SqlEnvironment.createSqlEnvironment
-    @con = @env.createSqlConnection @database, @username, @password
+    @con = @env.createSqlConnection @database, @schema, @username, @password
     assert @con.hasAutoCommit
     @con.setAutoCommit false
     assert !@con.hasAutoCommit
@@ -47,7 +49,7 @@ class TC_Nuodb < Test::Unit::TestCase
 
   def test_statement()
     @env = Nuodb::SqlEnvironment.createSqlEnvironment
-    @con = @env.createSqlConnection @database, @username, @password
+    @con = @env.createSqlConnection @database, @schema, @username, @password
     @stmt = @con.createStatement
     assert_not_nil @stmt
     @stmt.execute "drop table test_nuodb if exists"
