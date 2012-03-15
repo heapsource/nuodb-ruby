@@ -47,8 +47,7 @@ public:								\
  WT(RT& arg) : ref(arg) {}					\
  static VALUE getRubyType() { return type; }			\
  static void release(WT* self) {				\
-   rb_warn("DISABLED release %s %p", #WT, self);		\
-   /* self->ref.release(); */					\
+   self->ref.release();	 					\
    delete self;							\
  }								\
  static RT& asRef(VALUE value) {				\
