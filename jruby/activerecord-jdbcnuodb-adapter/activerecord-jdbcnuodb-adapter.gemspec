@@ -14,7 +14,7 @@ Gem::Specification.new do |s|
   s.files = [
     "Rakefile",
     "README.txt",
-    "LICENSE.txt",
+    "LICENSE",
     "lib/active_record/connection_adapters/nuodb_adapter.rb",
     "lib/arjdbc/discover.rb",
     "lib/arjdbc/nuodb.rb",

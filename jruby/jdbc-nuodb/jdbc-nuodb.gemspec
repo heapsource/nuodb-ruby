@@ -15,7 +15,7 @@ Gem::Specification.new do |s|
   s.files = [
     "Rakefile", 
     "README.txt", 
-    "LICENSE.txt",
+    "LICENSE",
     *Dir["lib/**/*"].to_a
   ]
   s.homepage = %q{http://nuodb.com/}
