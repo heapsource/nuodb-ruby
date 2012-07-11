@@ -35,8 +35,10 @@ end
 
 dir_config('nuodb', '/opt/nuodb/include', '/opt/nuodb/lib64')
 
+if CONFIG['warnflags']
 CONFIG['warnflags'].slice!(/-Wdeclaration-after-statement/)
 CONFIG['warnflags'].slice!(/-Wimplicit-function-declaration/)
+end
 
 have_library('NuoRemote') or raise
 
