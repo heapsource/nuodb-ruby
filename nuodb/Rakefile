@@ -26,49 +26,113 @@
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-begin
-  require 'rake'
-rescue LoadError
-  require 'rubygems'
-  require 'rake'
+require 'rubygems'
+require 'rake'
+require 'rake/clean'
+require 'rake/testtask'
+require 'rdoc/task'
+require 'date'
+
+#############################################################################
+#
+# Helper functions
+#
+#############################################################################
+
+def name
+  @name ||= Dir['*.gemspec'].first.split('.').first
 end
 
-require 'rubygems/package_task'
-require 'hoe'
-
-HOE = Hoe.spec 'nuodb' do
-  self.author = ['NuoDB, Inc.']
-  self.email = ['info@nuodb.com']
-  self.need_tar = false
-  self.need_zip = false
-
-  spec_extras[:required_ruby_version] = Gem::Requirement.new('>= 1.8.6')
-
-  spec_extras[:extensions] = ['ext/nuodb/extconf.rb']
-  clean_globs << "tmp" << "lib/nuodb/nuodb.so"
-
-  extra_dev_deps << ['rake-compiler', "~> 0.7.0"]
+def version
+  require File.expand_path('../lib/nuodb/version', __FILE__)
+  NuoDB::Version::STRING
 end
 
-file "#{HOE.spec.name}.gemspec" => ['Rakefile', 'tasks/gem.rake'] do |t|
-  puts "Generating #{t.name}"
-  File.open(t.name, 'w') { |f| f.puts HOE.spec.to_yaml }
+def rubyforge_project
+  name
 end
 
-desc "Generate or update the standalone gemspec file for the project"
-task :gemspec => ["#{HOE.spec.name}.gemspec"]
+def date
+  Date.today.to_s
+end
 
-# use rake-compiler for building the extension
-require 'rake/extensiontask' or raise
+def gemspec_file
+  "#{name}.gemspec"
+end
 
-Rake::ExtensionTask.new('nuodb', HOE.spec) do |ext|
-  ext.lib_dir = "lib/nuodb"
-  ext.cross_compiling do |gemspec|
-    gemspec.post_install_message = <<-POST_INSTALL_MESSAGE
-You have installed the binary version of #{gemspec.name}.
-    POST_INSTALL_MESSAGE
+def gem_file
+  "#{name}-#{version}.gem"
+end
+
+def replace_header(head, header_name)
+  head.sub!(/(\.#{header_name}\s*= ').*'/) { "#{$1}#{send(header_name)}'" }
+end
+
+
+def so_ext
+  case RUBY_PLATFORM
+    when /bsd/i, /darwin/i
+      # extras here...
+      @sh_extension = 'bundle'
+    when /linux/i
+      # extras here...
+      @sh_extension = 'so'
+    when /solaris|sunos/i
+      # extras here...
+      @sh_extension = 'so'
+    else
+      puts
+      puts "Unsupported platform '#{RUBY_PLATFORM}'. Supported platforms are BSD, DARWIN, and LINUX."
+      exit
   end
 end
 
-# ensure things are compiled prior testing
-task :test => [:compile]
+#############################################################################
+#
+# Standard tasks
+#
+#############################################################################
+
+CLEAN.include('pkg')
+CLEAN.include('ext/**/*{.o,.log,.so,.bundle}')
+CLEAN.include('ext/**/Makefile')
+CLOBBER.include('lib/**/*{.so,.bundle}')
+
+require 'rdoc/task'
+Rake::RDocTask.new do |rdoc|
+  rdoc.rdoc_dir = 'rdoc'
+  rdoc.title = "#{name} #{version}"
+  rdoc.rdoc_files.include('README*')
+  rdoc.rdoc_files.include('lib/**/*.rb')
+end
+
+file "lib/#{name}/#{name}.#{so_ext}" => Dir.glob("ext/#{name}/*{.rb,.c}") do
+  Dir.chdir("ext/#{name}") do
+    # this does essentially the same thing
+    # as what RubyGems does
+    ruby "extconf.rb"
+    sh "make"
+  end
+  cp "ext/#{name}/#{name}.#{so_ext}", "lib/#{name}"
+end
+
+task :test => "lib/#{name}/#{name}.#{so_ext}"
+
+Rake::TestTask.new do |t|
+  t.libs << 'test'
+end
+
+task :default => :test
+
+#############################################################################
+#
+# Packaging tasks
+#
+#############################################################################
+
+desc "Build #{gem_file} into the pkg directory"
+task :build do
+  sh "mkdir -p pkg"
+  sh "gem build #{gemspec_file}"
+  sh "mv #{gem_file} pkg"
+end

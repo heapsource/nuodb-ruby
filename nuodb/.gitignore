@@ -6,3 +6,4 @@ ext/Makefile
 ext/mysql.c
 pkg
 tmp
+.idea

@@ -26,9 +26,8 @@
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-# Hoe uses this version
 class NuoDB
-  module GemVersion
+  module Version
     VERSION = '1.0.0'
   end
 end

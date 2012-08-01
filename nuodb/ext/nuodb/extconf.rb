@@ -28,18 +28,52 @@
 
 require 'mkmf'
 
-if RbConfig::CONFIG['host_os'] =~ /solaris|sunos/
-  have_library('stdc++')
-  $LDFLAGS << ' -m64'
+def parameter_empty?(parameter)
+  parameter.nil? || parameter.empty?
 end
 
-dir_config('nuodb', '/opt/nuodb/include', '/opt/nuodb/lib64')
+if parameter_empty? ENV['NUODB_ROOT']
+  if File.directory? '/opt/nuodb'
+    dir_config('nuodb', '/opt/nuodb/include', '/opt/nuodb/lib64')
+  end
+else
+  nuodb_root = ENV['NUODB_ROOT']
+  if File.directory? nuodb_root
+    nuodb_include = File.join(nuodb_root, 'include')
+    nuodb_lib64   = File.join(nuodb_root, 'lib64')
+    dir_config('nuodb', nuodb_include, nuodb_lib64)
+  end
+end
+
+fail = false
+
+def create_dummy_makefile
+  File.open("Makefile", 'w') do |f|
+    f.puts "all:"
+    f.puts "install:"
+  end
+end
+
+case RUBY_PLATFORM
+  when /bsd/i, /darwin/i
+    # extras here...
+  when /linux/i
+    # extras here...
+  when /solaris|sunos/i
+    # extras here...
+  have_library('stdc++')
+  $LDFLAGS << ' -m64'
+  else
+    puts
+    puts "Unsupported platform '#{RUBY_PLATFORM}'. Supported platforms are BSD, DARWIN, and LINUX."
+    create_dummy_makefile
+end
 
 if CONFIG['warnflags']
 CONFIG['warnflags'].slice!(/-Wdeclaration-after-statement/)
 CONFIG['warnflags'].slice!(/-Wimplicit-function-declaration/)
 end
 
-have_library('NuoRemote') or raise
-
+dir_config("nuodb")
+have_library("NuoRemote") or raise
 create_makefile('nuodb/nuodb')

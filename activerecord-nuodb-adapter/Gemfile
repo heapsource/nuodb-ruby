@@ -1,0 +1,10 @@
+source 'https://rubygems.org'
+
+gemspec
+
+group(:development, :test) do
+  gem 'rack'
+  gem 'rake-compiler'
+  gem 'rdoc'
+  gem 'rcov'
+end

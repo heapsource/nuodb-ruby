@@ -47,25 +47,25 @@ module ActiveRecord
           stmt = @connection.createPreparedStatement sql
 
           param = 1
-          binds.each {|bind|
+          binds.each { |bind|
             value = bind[1]
             case value
-            when String
-              stmt.setString param, value
-            when Integer
-              stmt.setInteger param, value
-            when Fixnum
-              stmt.setInteger param, value
-            when Float
-              stmt.setDouble param, value
-            when TrueClass
-              stmt.setBoolean param, true
-            when FalseClass
-              stmt.setBoolean param, false
-            when Time
-              stmt.setTime param, value
-            else
-              raise "don't know how to bind #{value.class} to parameter #{param}"
+              when String
+                stmt.setString param, value
+              when Integer
+                stmt.setInteger param, value
+              when Fixnum
+                stmt.setInteger param, value
+              when Float
+                stmt.setDouble param, value
+              when TrueClass
+                stmt.setBoolean param, true
+              when FalseClass
+                stmt.setBoolean param, false
+              when Time
+                stmt.setTime param, value
+              else
+                raise "don't know how to bind #{value.class} to parameter #{param}"
             end
             param += 1
           }
@@ -73,8 +73,8 @@ module ActiveRecord
           stmt.execute
 
           genkeys = stmt.getGeneratedKeys
-	  row = genkeys ? next_row(genkeys) : nil
-	  @last_inserted_id = row ? row[0] : nil
+          row = genkeys ? next_row(genkeys) : nil
+          @last_inserted_id = row ? row[0] : nil
 
           result = stmt.getResultSet
 
@@ -82,7 +82,7 @@ module ActiveRecord
             names = column_names result
             rows = all_rows result
             ActiveRecord::Result.new(names, rows)
-          else 
+          else
             nil
           end
 
@@ -106,14 +106,14 @@ module ActiveRecord
 
         private
 
-        def column_names result
+        def column_names (result)
           return [] if result.nil?
           names = []
           meta = result.getMetaData
           count = meta.getColumnCount
-          for i in 1..count
+          (1..count).each { |i|
             names << meta.getColumnName(i).downcase
-          end
+          }
           names
         end
 
@@ -131,29 +131,29 @@ module ActiveRecord
             meta = result.getMetaData
             count = meta.getColumnCount
             row = []
-            for i in 1..count
+            (1..count).each { |i|
               type = meta.getType(i)
               case type
-              when :SQL_INTEGER
-                row << result.getInteger(i)
-              when :SQL_DOUBLE
-                row << result.getDouble(i)
-              when :SQL_STRING
-                row << result.getString(i)
-              when :SQL_DATE
-                row << result.getDate(i)
-              when :SQL_TIME
-                row << result.getTime(i)
-              when :SQL_TIMESTAMP
-                row << result.getTimestamp(i)
-              when :SQL_CHAR
-                row << result.getChar(i)
-              when :SQL_BOOLEAN
-                row << result.getBoolean(i)
-              else
-                raise "unknown type #{type} for column #{i}"
+                when :SQL_INTEGER
+                  row << result.getInteger(i)
+                when :SQL_DOUBLE
+                  row << result.getDouble(i)
+                when :SQL_STRING
+                  row << result.getString(i)
+                when :SQL_DATE
+                  row << result.getDate(i)
+                when :SQL_TIME
+                  row << result.getTime(i)
+                when :SQL_TIMESTAMP
+                  row << result.getTimestamp(i)
+                when :SQL_CHAR
+                  row << result.getChar(i)
+                when :SQL_BOOLEAN
+                  row << result.getBoolean(i)
+                else
+                  raise "unknown type #{type} for column #{i}"
               end
-            end
+            }
             row
           else
             nil
