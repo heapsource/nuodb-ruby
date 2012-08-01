@@ -44,6 +44,10 @@ Create a user in the database:
     > create user cloud password 'user';
     > exit
 
+Run the tests:
+
+    rake test
+
 # INSPECTING THE EXPORTED SYMBOLS
 
     nm -gU ext/nuodb/nuodb.bundle
