@@ -136,3 +136,11 @@ task :build do
   sh "gem build #{gemspec_file}"
   sh "mv #{gem_file} pkg"
 end
+
+task :install => :build do
+  sh "gem install pkg/nuodb*.gem"
+end
+
+task :uninstall do
+  sh "gem uninstall nuodb"
+end

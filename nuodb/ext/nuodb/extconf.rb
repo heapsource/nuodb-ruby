@@ -32,9 +32,15 @@ def parameter_empty?(parameter)
   parameter.nil? || parameter.empty?
 end
 
+fail = false
 if parameter_empty? ENV['NUODB_ROOT']
-  if File.directory? '/opt/nuodb'
+  nuodb_root = '/opt/nuodb'
+  if File.directory? nuodb_root
     dir_config('nuodb', '/opt/nuodb/include', '/opt/nuodb/lib64')
+  else
+    puts
+    puts "Neither NUODB_ROOT is set, nor is NuoDB installed to /opt/nuodb platform. Please set NUODB_ROOT to refer to NuoDB installation directory."
+    fail = true
   end
 else
   nuodb_root = ENV['NUODB_ROOT']
@@ -42,10 +48,14 @@ else
     nuodb_include = File.join(nuodb_root, 'include')
     nuodb_lib64 = File.join(nuodb_root, 'lib64')
     dir_config('nuodb', nuodb_include, nuodb_lib64)
+  else
+    puts
+    puts "NUODB_ROOT is set but does not appear to refer to a valid NuoDB installation."
+    fail = true
   end
 end
 
-fail = false
+exit(false) if fail
 
 def create_dummy_makefile
   File.open("Makefile", 'w') do |f|
@@ -57,6 +67,7 @@ end
 case RUBY_PLATFORM
   when /bsd/i, /darwin/i
     # extras here...
+    $LDFLAGS << " -Xlinker -rpath -Xlinker #{nuodb_root}/lib64"
   when /linux/i
     # extras here...
   when /solaris|sunos/i
