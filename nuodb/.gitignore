@@ -2,8 +2,7 @@
 *.log
 *.o
 *.so
-ext/Makefile
-ext/mysql.c
+ext/nuodb/Makefile
 pkg
 tmp
 .idea
