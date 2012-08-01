@@ -26,6 +26,7 @@
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+require "test/unit"
 require 'rubygems'
 require 'active_record'
 
