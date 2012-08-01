@@ -35,8 +35,14 @@ Or from the source tree:
 
 Start up a minimal chorus as follows:
 
-    java -jar nuoagent.jar --verbose --broker --domain test --password test &
-    ./nuodb --chorus test --dba-user cloud --dba-password user &
+    java -jar nuoagent.jar --broker &
+    ./nuodb --chorus test --password bar --dba-user dba --dba-password baz &
+
+Create a user in the database:
+
+    ./nuosql test@localhost --user dba --password baz
+    > create user cloud password 'user';
+    > exit
 
 # INSPECTING THE EXPORTED SYMBOLS
 

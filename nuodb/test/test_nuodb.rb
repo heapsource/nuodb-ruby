@@ -68,6 +68,7 @@ class TC_Nuodb < Test::Unit::TestCase
     con = Nuodb::Connection.createSqlConnection @database, @schema, @username, @password
     s = con.getSchema
     assert_equal @schema.upcase, s
+    puts 'passed'
   end
 
   def test_ping()

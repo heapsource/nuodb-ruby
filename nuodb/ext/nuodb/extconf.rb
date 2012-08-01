@@ -40,7 +40,7 @@ else
   nuodb_root = ENV['NUODB_ROOT']
   if File.directory? nuodb_root
     nuodb_include = File.join(nuodb_root, 'include')
-    nuodb_lib64   = File.join(nuodb_root, 'lib64')
+    nuodb_lib64 = File.join(nuodb_root, 'lib64')
     dir_config('nuodb', nuodb_include, nuodb_lib64)
   end
 end
@@ -61,8 +61,8 @@ case RUBY_PLATFORM
     # extras here...
   when /solaris|sunos/i
     # extras here...
-  have_library('stdc++')
-  $LDFLAGS << ' -m64'
+    have_library('stdc++')
+    $LDFLAGS << ' -m64'
   else
     puts
     puts "Unsupported platform '#{RUBY_PLATFORM}'. Supported platforms are BSD, DARWIN, and LINUX."
@@ -70,8 +70,8 @@ case RUBY_PLATFORM
 end
 
 if CONFIG['warnflags']
-CONFIG['warnflags'].slice!(/-Wdeclaration-after-statement/)
-CONFIG['warnflags'].slice!(/-Wimplicit-function-declaration/)
+  CONFIG['warnflags'].slice!(/-Wdeclaration-after-statement/)
+  CONFIG['warnflags'].slice!(/-Wimplicit-function-declaration/)
 end
 
 dir_config("nuodb")
