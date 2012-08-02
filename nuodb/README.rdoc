@@ -49,4 +49,4 @@ To do this you dump the contents of a gem thus:
 
 == REFERENCES
 
-    extensions :: http://java.ociweb.com/mark/NFJS/RubyCExtensions.pdf
+extensions :: http://java.ociweb.com/mark/NFJS/RubyCExtensions.pdf
