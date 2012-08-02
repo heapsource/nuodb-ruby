@@ -5,25 +5,13 @@
 This is the NuoDB API module for Ruby. It integrates the NuoDB C++
 library into Ruby.
 
-# INSPECTING THE GEM
+== BUILDING THE GEM
 
-It is often useful to inspect the contents of a Gem before distribution.
-To do this you dump the contents of a gem thus:
-
-    gem unpack pkg/nuodb-1.0.0.gem
-
-# BUILDING THE GEM
-
-Prior to building the Gem you need to set two environment variables:
-
-    export NUODB_ROOT=/Users/rbuck/tmp/nuodb
-    export DYLD_LIBRARY_PATH=$NUODB_ROOT/lib64
-
-Then to compile and test run this command:
+To compile and test run this command:
 
     rake build
 
-# INSTALLING THE GEM
+== INSTALLING THE GEM
 
     NUODB_ROOT=/Users/rbuck/tmp/nuodb gem install nuodb-1.0.0.gem
 
@@ -31,7 +19,7 @@ Or from the source tree:
 
     NUODB_ROOT=/Users/rbuck/tmp/nuodb gem install pkg/nuodb-1.0.0.gem
 
-# TESTING THE GEM
+== TESTING THE GEM
 
 Start up a minimal chorus as follows:
 
@@ -48,10 +36,17 @@ Run the tests:
 
     rake test
 
-# INSPECTING THE EXPORTED SYMBOLS
+== INSPECTING THE GEM
+
+It is often useful to inspect the contents of a Gem before distribution.
+To do this you dump the contents of a gem thus:
+
+    gem unpack pkg/nuodb-1.0.0.gem
+
+== INSPECTING THE EXPORTED SYMBOLS
 
     nm -gU ext/nuodb/nuodb.bundle
 
-# REFERENCES
+== REFERENCES
 
-    * http://java.ociweb.com/mark/NFJS/RubyCExtensions.pdf
+    extensions :: http://java.ociweb.com/mark/NFJS/RubyCExtensions.pdf
