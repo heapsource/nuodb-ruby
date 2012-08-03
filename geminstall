@@ -1,0 +1,93 @@
+#!/usr/bin/env ruby
+
+=begin
+
+== Description
+
+The script manages NuoDB gems, installing them or uninstalling them, removing some
+of the command line complexity from developers eyes.
+
+== Mac Only Notes
+
+The dylib for NuoDB must have an @rpath set on Mac, so if you find that the dylib
+id is incorrect, you will need to run the install_name_tool to fix it. To see what
+the current id is run this command:
+
+  otool -L libNuoRemote.dylib
+
+Incorrect output will look like this:
+
+  libNuoRemote.dylib:
+    /Users/build/bamboo-agent-home/xml-data/build-dir/MASTER-PACKAGE-MACOSX/Remote/Debug/libNuoRemote.dylib (compatibility version 0.0.0, current version 0.0.0)
+    /usr/lib/libstdc++.6.dylib (compatibility version 7.0.0, current version 52.0.0)
+    /usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 159.0.0)
+
+Correct output will look like this:
+
+  libNuoRemote.dylib:
+    @rpath/libNuoRemote.dylib (compatibility version 0.0.0, current version 0.0.0)
+    /usr/lib/libstdc++.6.dylib (compatibility version 7.0.0, current version 52.0.0)
+    /usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 159.0.0)
+
+As necessary, to fix the id you'd run this command:
+
+  install_name_tool -id @rpath/libNuoRemote.dylib libNuoRemote.dylib
+
+=end
+
+require 'rake'
+require 'optparse'
+
+nuodb_root = File.expand_path('../../../', __FILE__)
+
+task :default => :install
+
+desc "Install NuoDB Ruby Gems"
+task :install do
+  sh "NUODB_ROOT=#{nuodb_root} gem install nuodb-*.gem"
+  sh "gem install activerecord-nuodb-adapter-*.gem"
+end
+
+desc "Uninstall NuoDB Ruby Gems"
+task :uninstall do
+  sh "gem uninstall activerecord-nuodb-adapter"
+  sh "gem uninstall nuodb"
+end
+
+optparse = OptionParser.new do |opts|
+  opts.banner = "Usage: #{$0} <options> [install|uninstall]"
+  opts.separator ''
+
+  opts.on('-h', '--help', 'Display this help') do
+    puts opts
+    exit
+  end
+end
+
+def no_command_given?
+  ARGV.empty?
+end
+
+def raise_argument_error (list)
+  raise ArgumentError, "Invalid command: #{list}"
+end
+
+def list_commands
+  if no_command_given?
+    [:install]
+  else
+    list = ARGV.select { |arg| arg =~ /^(([[:alnum:]])[[:alnum:]\_\-]+)$/ }
+    fail = list.reject { |entry| entry if %w(install uninstall).include? entry }
+    raise_argument_error fail if not fail.empty?
+    list.select { |entry| entry.to_sym }
+  end
+end
+
+begin
+  optparse.parse!
+  list_commands.each { |command| Rake::Task[command].invoke }
+rescue ArgumentError, OptionParser::InvalidOption => e
+  puts "Error: #{e}\n"
+  puts optparse
+  exit 1
+end
