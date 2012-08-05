@@ -243,10 +243,11 @@ module ActiveRecord
       
       def connect
         database = @config[:database]
+        schema = @config[:schema]
         hostname = @config[:host]
         username = @config[:username]
         password = @config[:password]
-        @connection = ::Nuodb::Connection.createSqlConnection "#{database}@#{hostname}", database, username, password
+        @connection = ::Nuodb::Connection.createSqlConnection "#{database}@#{hostname}", schema, username, password
       end
 
       #

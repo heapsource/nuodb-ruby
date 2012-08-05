@@ -52,6 +52,7 @@ class NuoSimpleTest < Test::Unit::TestCase
     ActiveRecord::Base.establish_connection(
                                             :adapter => 'nuodb',
                                             :database => 'test',
+                                            :schema => 'test',
                                             :username => 'cloud',
                                             :password => 'user'
                                             )
