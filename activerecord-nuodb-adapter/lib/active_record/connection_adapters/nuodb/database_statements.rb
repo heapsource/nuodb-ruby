@@ -28,7 +28,7 @@
 
 module ActiveRecord
   module ConnectionAdapters
-    module Nuodb
+    module NuoDB
       module DatabaseStatements
 
         def execute(sql, name = nil)

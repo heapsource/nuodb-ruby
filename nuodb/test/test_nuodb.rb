@@ -51,13 +51,13 @@ class TC_Nuodb < Test::Unit::TestCase
   end
 
   #def test_version()
-  #  con = Nuodb::Connection.createSqlConnection @database, @schema, @username, @password
+  #  con = NuoDB::Connection.createSqlConnection @database, @schema, @username, @password
   #  dmd = con.getMetaData
   #  assert_match /^1\./, dmd.getDatabaseVersion
   #end
 
   def test_select_from_dual()
-    con = Nuodb::Connection.createSqlConnection @database, @schema, @username, @password
+    con = NuoDB::Connection.createSqlConnection @database, @schema, @username, @password
     stmt = con.createStatement
     assert_not_nil stmt
     have_result = stmt.execute "select 1 from dual"
@@ -65,19 +65,19 @@ class TC_Nuodb < Test::Unit::TestCase
   end
 
   def test_get_schema()
-    con = Nuodb::Connection.createSqlConnection @database, @schema, @username, @password
+    con = NuoDB::Connection.createSqlConnection @database, @schema, @username, @password
     s = con.getSchema
     assert_equal @schema.upcase, s
     puts 'passed'
   end
 
   def test_ping()
-    con = Nuodb::Connection.createSqlConnection @database, @schema, @username, @password
+    con = NuoDB::Connection.createSqlConnection @database, @schema, @username, @password
     assert_equal true, con.ping
   end
 
   def test_auto_commit_flag()
-    con = Nuodb::Connection.createSqlConnection @database, @schema, @username, @password
+    con = NuoDB::Connection.createSqlConnection @database, @schema, @username, @password
     assert con.hasAutoCommit
     con.setAutoCommit false
     assert !con.hasAutoCommit
@@ -86,7 +86,7 @@ class TC_Nuodb < Test::Unit::TestCase
   end
 
   def test_statement()
-    con = Nuodb::Connection.createSqlConnection @database, @schema, @username, @password
+    con = NuoDB::Connection.createSqlConnection @database, @schema, @username, @password
     stmt = con.createStatement
     assert_not_nil stmt
     have_result = stmt.execute "drop table test_nuodb if exists"
@@ -175,7 +175,7 @@ EOS
   end
 
   def test_prepared_statement()
-    con = Nuodb::Connection.createSqlConnection @database, @schema, @username, @password
+    con = NuoDB::Connection.createSqlConnection @database, @schema, @username, @password
     stmt = con.createStatement
     assert_not_nil stmt
     stmt.execute "drop table test_nuodb if exists"

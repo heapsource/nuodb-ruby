@@ -45,7 +45,7 @@ end
 
 def version
   require File.expand_path('../lib/nuodb/version', __FILE__)
-  NuoDB::Version::VERSION
+  NuoDB::VERSION
 end
 
 def rubyforge_project

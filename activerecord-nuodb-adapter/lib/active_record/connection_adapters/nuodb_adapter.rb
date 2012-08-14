@@ -33,22 +33,23 @@ require 'active_record/base'
 require 'active_record/connection_adapters/abstract_adapter'
 require 'active_record/connection_adapters/nuodb/database_statements'
 require 'active_record/connection_adapters/nuodb/version'
+require 'active_record/connection_adapters/nuodb/errors'
 
 module ActiveRecord
-  
+
   class Base
-    
+
     def self.nuodb_connection(config) #:nodoc:
       config = config.symbolize_keys
       # supply configuration defaults
       config.reverse_merge! :host => 'localhost'
-      ConnectionAdapters::NuoDBAdapter.new nil, logger, nil, config 
+      ConnectionAdapters::NuoDBAdapter.new nil, logger, nil, config
     end
-    
+
   end
-  
+
   module ConnectionAdapters
-    
+
     class NuoDBColumn < Column
 
       def initialize(name, default, sql_type = nil, null = true, options = {})
@@ -56,144 +57,154 @@ module ActiveRecord
         super(name, default, sql_type, null)
         @primary = @options[:is_identity] || @options[:is_primary]
       end
-      
+
       class << self
-        
+
         def string_to_binary(value)
           "0x#{value.unpack("H*")[0]}"
         end
-        
+
         def binary_to_string(value)
           value =~ /[^[:xdigit:]]/ ? value : [value].pack('H*')
         end
-        
+
       end
-      
+
       def is_identity?
         @options[:is_identity]
       end
-      
+
       def is_primary?
         @options[:is_primary]
       end
-      
+
       def is_utf8?
         !!(@sql_type =~ /nvarchar|ntext|nchar/i)
       end
-      
+
       def is_integer?
         !!(@sql_type =~ /int/i)
       end
-      
+
       def is_real?
         !!(@sql_type =~ /real/i)
       end
-      
+
       def sql_type_for_statement
         if is_integer? || is_real?
-          sql_type.sub(/\((\d+)?\)/,'')
+          sql_type.sub(/\((\d+)?\)/, '')
         else
           sql_type
         end
       end
-      
+
       def default_function
         @options[:default_function]
       end
-      
+
       def table_name
         @options[:table_name]
       end
-      
+
       def table_klass
         @table_klass ||= begin
-                           table_name.classify.constantize
-                         rescue StandardError, NameError, LoadError
-                           nil
-                         end
+          table_name.classify.constantize
+        rescue StandardError, NameError, LoadError
+          nil
+        end
         (@table_klass && @table_klass < ActiveRecord::Base) ? @table_klass : nil
       end
-      
+
       private
-      
+
       def extract_limit(sql_type)
         case sql_type
-        when /^smallint/i
-          2
-        when /^int/i
-          4
-        when /^bigint/i
-          8
-        when /\(max\)/, /decimal/, /numeric/
-          nil
-        else
-          super
+          when /^smallint/i
+            2
+          when /^int/i
+            4
+          when /^bigint/i
+            8
+          when /\(max\)/, /decimal/, /numeric/
+            nil
+          else
+            super
         end
       end
-      
+
       def simplified_type(field_type)
         case field_type
-        when /real/i              then :float
-        when /money/i             then :decimal
-        when /image/i             then :binary
-        when /bit/i               then :boolean
-        when /uniqueidentifier/i  then :string
-        when /datetime/i          then :datetime
-        when /varchar\(max\)/     then :text
-        when /timestamp/          then :binary
-        else super
+          when /real/i then
+            :float
+          when /money/i then
+            :decimal
+          when /image/i then
+            :binary
+          when /bit/i then
+            :boolean
+          when /uniqueidentifier/i then
+            :string
+          when /datetime/i then
+            :datetime
+          when /varchar\(max\)/ then
+            :text
+          when /timestamp/ then
+            :binary
+          else
+            super
         end
       end
-      
+
     end #class NuoDBColumn
-    
+
     class NuoDBAdapter < AbstractAdapter
 
-      include Nuodb::DatabaseStatements
-      
+      include NuoDB::DatabaseStatements
+      include NuoDB::Errors
+
       def initialize(connection, logger, pool, config)
         super(connection, logger, pool)
         @visitor = Arel::Visitors::NuoDB.new self
         @config = config
         connect
       end
-      
+
       def adapter_name
         'NuoDB'
       end
-      
+
       def supports_migrations?
         true
       end
-      
+
       def supports_primary_key?
         true
       end
-      
+
       def supports_count_distinct?
         true
       end
-      
+
       def supports_ddl_transactions?
         true
       end
-      
+
       def supports_bulk_alter?
         false
       end
-      
+
       def supports_savepoints?
         true
       end
-      
+
       def supports_index_sort_order?
         true
       end
-      
+
       def supports_explain?
         true
       end
-      
+
       def active?
         raw_connection_do 'select 1 from system.tables fetch first 1 rows'
         true
@@ -210,44 +221,44 @@ module ActiveRecord
       def disconnect!
         @connection.disconnect rescue nil # TODO
       end
-      
+
       def reset!
         # TODO -- IMPLEMENT RESET
         # Reset the state of this connection, directing the DBMS to clear
         # transactions and other connection-related server-side state. Usually a
         # database-dependent operation.
       end
-      
+
       def pk_and_sequence_for(table_name)
         idcol = identity_column(table_name)
-        idcol ? [idcol.name,nil] : nil
+        idcol ? [idcol.name, nil] : nil
       end
 
       def primary_key(table_name)
         identity_column(table_name).try(:name)
       end
-      
+
       def version
         self.class::VERSION
       end
-      
+
       def auto_connect
         @@auto_connect.is_a?(FalseClass) ? false : true
       end
-      
+
       def auto_connect_duration
         @@auto_connect_duration ||= 10
       end
 
       protected
-      
+
       def connect
         database = @config[:database]
         schema = @config[:schema]
         hostname = @config[:host]
         username = @config[:username]
         password = @config[:password]
-        @connection = ::Nuodb::Connection.createSqlConnection "#{database}@#{hostname}", schema, username, password
+        @connection = ::NuoDB::Connection.createSqlConnection "#{database}@#{hostname}", schema, username, password
       end
 
       #
@@ -300,29 +311,45 @@ module ActiveRecord
       end
 
       protected
-      
+
       def initialize_native_database_types
         {
-          :primary_key  => 'int not null generated always primary key',
-          :string       => { :name => 'varchar', :limit => 255  },
-          :text         => { :name => 'varchar', :limit => 255  },
-          :integer      => { :name => 'integer' },
-          :float        => { :name => 'float', :limit => 8 },
-          :decimal      => { :name => 'decimal' },
-          :datetime     => { :name => 'datetime' },
-          :timestamp    => { :name => 'datetime' },
-          :time         => { :name => 'time' },
-          :date         => { :name => 'date' },
-          :binary       => { :name => 'binary' },
-          :boolean      => { :name => 'boolean'},
-          :char         => { :name => 'char' },
-          :varchar_max  => { :name => 'varchar(max)' },
-          :nchar        => { :name => 'nchar' },
-          :nvarchar     => { :name => 'nvarchar', :limit => 255 },
-          :nvarchar_max => { :name => 'nvarchar(max)' },
-          :ntext        => { :name => 'ntext', :limit => 255 },
-          :ss_timestamp => { :name => 'timestamp' }
+            :primary_key => 'int not null generated always primary key',
+            :string => {:name => 'varchar', :limit => 255},
+            :text => {:name => 'varchar', :limit => 255},
+            :integer => {:name => 'integer'},
+            :float => {:name => 'float', :limit => 8},
+            :decimal => {:name => 'decimal'},
+            :datetime => {:name => 'datetime'},
+            :timestamp => {:name => 'datetime'},
+            :time => {:name => 'time'},
+            :date => {:name => 'date'},
+            :binary => {:name => 'binary'},
+            :boolean => {:name => 'boolean'},
+            :char => {:name => 'char'},
+            :varchar_max => {:name => 'varchar(max)'},
+            :nchar => {:name => 'nchar'},
+            :nvarchar => {:name => 'nvarchar', :limit => 255},
+            :nvarchar_max => {:name => 'nvarchar(max)'},
+            :ntext => {:name => 'ntext', :limit => 255},
+            :ss_timestamp => {:name => 'timestamp'}
         }
+      end
+
+      def translate_exception(exception, message)
+        case message
+          when /duplicate value in unique index/i
+            RecordNotUnique.new(message, exception)
+          when /too few values specified in the value list/i
+            # defaults to StatementInvalid, so we are okay, but just to be explicit...
+            super
+          when *lost_connection_messages
+            LostConnection.new(message, exception)
+          when *connection_not_established_messages
+            ConnectionNotEstablished.new(message)
+          else
+            super
+        end
       end
 
       private
@@ -330,14 +357,14 @@ module ActiveRecord
       def split_table_name(table)
         name_parts = table.split '.'
         case name_parts.length
-        when 1
-          schema_name = @connection.getSchema
-          table_name = name_parts[0]
-        when 2
-          schema_name = name_parts[0]
-          table_name = name_parts[1]
-        else
-          raise "Invalid table name: #{table}"
+          when 1
+            schema_name = @connection.getSchema
+            table_name = name_parts[0]
+          when 2
+            schema_name = name_parts[0]
+            table_name = name_parts[1]
+          else
+            raise "Invalid table name: #{table}"
         end
         [schema_name, table_name]
       end
@@ -349,8 +376,8 @@ module ActiveRecord
       end
 
     end #class NuoDBAdapter < AbstractAdapter
-    
+
   end #module ConnectionAdapters
-  
+
 end #module ActiveRecord
 

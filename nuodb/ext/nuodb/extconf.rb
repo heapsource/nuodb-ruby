@@ -32,6 +32,10 @@ def parameter_empty?(parameter)
   parameter.nil? || parameter.empty?
 end
 
+if have_header('stdint.h') then
+  $CPPFLAGS << " -DHAVE_STDINT_H"
+end
+
 fail = false
 if parameter_empty? ENV['NUODB_ROOT']
   nuodb_root = '/opt/nuodb'

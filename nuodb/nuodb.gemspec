@@ -9,7 +9,7 @@ Gem::Specification.new do |gem|
   gem.authors = %w(rbuck@nuodb.com)
   gem.email = %w(support@nuodb.com)
   gem.license = "BSD"
-  gem.version = NuoDB::Version::VERSION
+  gem.version = NuoDB::VERSION
   gem.date = '2012-07-30'
 
   gem.rdoc_options = %w(--charset=UTF-8)

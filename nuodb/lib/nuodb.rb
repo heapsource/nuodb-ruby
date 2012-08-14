@@ -26,5 +26,7 @@
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-require 'nuodb/nuodb'
 require 'nuodb/version'
+require 'nuodb/error'
+
+require 'nuodb/nuodb'

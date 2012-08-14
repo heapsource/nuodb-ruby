@@ -27,5 +27,16 @@
 #
 
 module NuoDB
-  VERSION = '1.0.0'
+
+  class Error < StandardError
+
+    attr_accessor :error_code
+
+    def initialize(message=nil, error_code = nil)
+      super(message)
+      @error_code = error_code
+    end
+
+  end
+
 end
