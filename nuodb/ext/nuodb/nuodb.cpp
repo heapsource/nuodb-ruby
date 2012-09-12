@@ -192,6 +192,7 @@ class WrapStatement
     WRAPPER_COMMON(WrapStatement, Statement);
 
     static void init(VALUE module);
+    static VALUE close(VALUE self);
     static VALUE execute(VALUE self, VALUE sqlValue);
     static VALUE executeQuery(VALUE self, VALUE sqlValue);
     static VALUE executeUpdate(VALUE self, VALUE sqlValue);
@@ -209,6 +210,7 @@ class WrapPreparedStatement
     WRAPPER_COMMON(WrapPreparedStatement, PreparedStatement);
 
     static void init(VALUE module);
+    static VALUE close(VALUE self);
     static VALUE setBoolean(VALUE self, VALUE indexValue, VALUE valueValue);
     static VALUE setInteger(VALUE self, VALUE indexValue, VALUE valueValue);
     static VALUE setDouble(VALUE self, VALUE indexValue, VALUE valueValue);
@@ -638,12 +640,26 @@ VALUE WrapResultSetMetaData::getType(VALUE self, VALUE columnValue)
 void WrapStatement::init(VALUE module)
 {
     INIT_TYPE("Statement");
+    DEFINE_METHOD(close, 0);
     DEFINE_METHOD(execute, 1);
     DEFINE_METHOD(executeQuery, 1);
     DEFINE_METHOD(executeUpdate, 1);
     DEFINE_METHOD(getResultSet, 0);
     DEFINE_METHOD(getUpdateCount, 0);
     DEFINE_METHOD(getGeneratedKeys, 0);
+}
+
+VALUE WrapStatement::close(VALUE self)
+{
+    try
+    {
+        asPtr(self)->close();
+        return Qnil;
+    }
+    catch (SQLException & e)
+    {
+        rb_raise_nuodb_error(e.getSqlcode(), "Failed to successfully close statement: %s", e.getText());
+    }
 }
 
 VALUE WrapStatement::execute(VALUE self, VALUE sqlValue)
@@ -726,6 +742,7 @@ VALUE WrapStatement::getGeneratedKeys(VALUE self)
 void WrapPreparedStatement::init(VALUE module)
 {
     INIT_TYPE("PreparedStatement");
+    DEFINE_METHOD(close, 0);
     DEFINE_METHOD(setBoolean, 2);
     DEFINE_METHOD(setInteger, 2);
     DEFINE_METHOD(setDouble, 2);
@@ -737,6 +754,19 @@ void WrapPreparedStatement::init(VALUE module)
     DEFINE_METHOD(getResultSet, 0);
     DEFINE_METHOD(getUpdateCount, 0);
     DEFINE_METHOD(getGeneratedKeys, 0);
+}
+
+VALUE WrapPreparedStatement::close(VALUE self)
+{
+    try
+    {
+        asPtr(self)->close();
+        return Qnil;
+    }
+    catch (SQLException & e)
+    {
+        rb_raise_nuodb_error(e.getSqlcode(), "Failed to successfully close prepared statement: %s", e.getText());
+    }
 }
 
 VALUE WrapPreparedStatement::setTime(VALUE self, VALUE indexValue, VALUE valueValue)
@@ -894,17 +924,34 @@ VALUE WrapPreparedStatement::getGeneratedKeys(VALUE self)
 
 void WrapConnection::init(VALUE module)
 {
-    INIT_TYPE("Connection");
+    type = rb_define_class_under(module, "Connection", rb_cObject);
+
+    // DBI
+
+    // todo add .columns, or not? If we did: .columns(table_name)
+    // todo and tie this into the SchemaCache on the Ruby side.
+    rb_define_method(type, "commit", RUBY_METHOD_FUNC(commit), 0);
+    rb_define_method(type, "disconnect", RUBY_METHOD_FUNC(close), 0);
+    rb_define_method(type, "ping", RUBY_METHOD_FUNC(ping), 0);
+    rb_define_method(type, "prepare", RUBY_METHOD_FUNC(createPreparedStatement), 1);
+    rb_define_method(type, "rollback", RUBY_METHOD_FUNC(rollback), 0);
+    // todo add .tables, definitely!
+
+    // NUODB EXTENSIONS
+
+    rb_define_method(type, "autocommit=", RUBY_METHOD_FUNC(setAutoCommit), 1);
+    rb_define_method(type, "autocommit?", RUBY_METHOD_FUNC(hasAutoCommit), 0);
+
+    // DEPRECATED, going away shortly...
+
+    // todo use .new and .initialize instead...
     DEFINE_SINGLE(createSqlConnection, 4);
     DEFINE_METHOD(createStatement, 0);
     DEFINE_METHOD(createPreparedStatement, 1);
     DEFINE_METHOD(setAutoCommit, 1);
     DEFINE_METHOD(hasAutoCommit, 0);
-    DEFINE_METHOD(commit, 0);
-    DEFINE_METHOD(rollback, 0);
     DEFINE_METHOD(getMetaData, 0);
     DEFINE_METHOD(close, 0);
-    DEFINE_METHOD(ping, 0);
     DEFINE_METHOD(getSchema, 0);
 }
 
@@ -929,7 +976,7 @@ VALUE WrapConnection::close(VALUE self)
     }
     catch (SQLException & e)
     {
-        rb_raise_nuodb_error(e.getSqlcode(), "Failed to successfully close connection: %s", e.getText());
+        rb_raise_nuodb_error(e.getSqlcode(), "Failed to successfully disconnect connection: %s", e.getText());
     }
 }
 

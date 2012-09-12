@@ -116,6 +116,8 @@ task :default => :test
 #
 #############################################################################
 
+GEM_NAME = "activerecord-nuodb-adapter"
+
 desc "Build #{gem_file} into the pkg directory"
 task :build do
   sh "mkdir -p pkg"
@@ -124,9 +126,9 @@ task :build do
 end
 
 task :install => :build do
-  sh "gem install pkg/activerecord-nuodb-adapter*.gem"
+  sh %{gem install pkg/#{GEM_NAME}-#{ActiveRecord::ConnectionAdapters::NuoDB::VERSION} --no-rdoc --no-ri}
 end
 
 task :uninstall do
-  sh "gem uninstall activerecord-nuodb-adapter"
+  sh %{gem uninstall #{GEM_NAME} -x -v #{ActiveRecord::ConnectionAdapters::NuoDB::VERSION}}
 end

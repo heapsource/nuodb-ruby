@@ -78,11 +78,11 @@ class TC_Nuodb < Test::Unit::TestCase
 
   def test_auto_commit_flag()
     con = NuoDB::Connection.createSqlConnection @database, @schema, @username, @password
-    assert con.hasAutoCommit
-    con.setAutoCommit false
-    assert !con.hasAutoCommit
-    con.setAutoCommit true
-    assert con.hasAutoCommit
+    assert con.autocommit?
+    con.autocommit = false
+    assert !con.autocommit?
+    con.autocommit = true
+    assert con.autocommit?
   end
 
   def test_statement()

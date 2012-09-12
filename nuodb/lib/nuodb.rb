@@ -28,5 +28,4 @@
 
 require 'nuodb/version'
 require 'nuodb/error'
-
 require 'nuodb/nuodb'

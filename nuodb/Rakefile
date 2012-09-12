@@ -96,7 +96,7 @@ end
 CLEAN.include('pkg')
 CLEAN.include('ext/**/*{.o,.log,.so,.bundle}')
 CLEAN.include('ext/**/Makefile')
-CLOBBER.include('lib/**/*{.so,.bundle}')
+CLEAN.include('lib/**/*{.so,.bundle}')
 
 require 'rdoc/task'
 Rake::RDocTask.new do |rdoc|
@@ -130,6 +130,8 @@ task :default => :test
 #
 #############################################################################
 
+GEM_NAME = "nuodb"
+
 desc "Build #{gem_file} into the pkg directory"
 task :build do
   sh "mkdir -p pkg"
@@ -138,9 +140,9 @@ task :build do
 end
 
 task :install => :build do
-  sh "gem install pkg/nuodb*.gem"
+  sh %{gem install pkg/#{GEM_NAME}-#{NuoDB::VERSION} --no-rdoc --no-ri}
 end
 
 task :uninstall do
-  sh "gem uninstall nuodb"
+  sh %{gem uninstall #{GEM_NAME} -x -v #{NuoDB::VERSION}}
 end
