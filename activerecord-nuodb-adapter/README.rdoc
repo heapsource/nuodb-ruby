@@ -1,4 +1,4 @@
-= NuoDB/Ruby Interface
+= NuoDB/ActiveRecord Adapter
 
 == DESCRIPTION
 
@@ -12,11 +12,11 @@ To compile and test run this command:
 
 == INSTALLING THE GEM
 
-    gem install nuodb-1.0.0.gem
+    gem install activerecord-nuodb-adapter-0.2.0.gem
 
 Or from the source tree:
 
-    gem install pkg/nuodb-1.0.0.gem
+    gem install pkg/activerecord-nuodb-adapter-0.2.0.gem
 
 Or you can do this using Rake:
 
@@ -44,6 +44,6 @@ Run the tests:
 It is often useful to inspect the contents of a Gem before distribution.
 To do this you dump the contents of a gem thus:
 
-    gem unpack pkg/nuodb-1.0.0.gem
+    gem unpack pkg/activerecord-nuodb-adapter-0.2.0.gem
 
 == REFERENCES

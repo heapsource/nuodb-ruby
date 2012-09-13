@@ -13,11 +13,11 @@ To compile and test run this command:
 
 == INSTALLING THE GEM
 
-    NUODB_ROOT=/Users/rbuck/tmp/nuodb gem install nuodb-1.0.0.gem
+    NUODB_ROOT=/Users/rbuck/tmp/nuodb gem install nuodb-0.2.0.gem
 
 Or from the source tree:
 
-    NUODB_ROOT=/Users/rbuck/tmp/nuodb gem install pkg/nuodb-1.0.0.gem
+    NUODB_ROOT=/Users/rbuck/tmp/nuodb gem install pkg/nuodb-0.2.0.gem
 
 == TESTING THE GEM
 
@@ -41,7 +41,7 @@ Run the tests:
 It is often useful to inspect the contents of a Gem before distribution.
 To do this you dump the contents of a gem thus:
 
-    gem unpack pkg/nuodb-1.0.0.gem
+    gem unpack pkg/nuodb-0.2.0.gem
 
 == INSPECTING THE EXPORTED SYMBOLS
 
