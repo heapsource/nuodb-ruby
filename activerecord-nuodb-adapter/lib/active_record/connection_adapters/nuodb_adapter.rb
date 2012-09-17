@@ -433,6 +433,31 @@ module ActiveRecord
       # todo implement the remaining schema statements methods: rename columns, tables, etc...
       # todo, and these methods have to clear the cache!!!
 
+      public
+
+      def native_database_types
+        NATIVE_DATABASE_TYPES
+      end
+
+      def type_to_sql(type, limit = nil, precision = nil, scale = nil)
+        case type.to_s
+          when 'integer'
+            return 'integer' unless limit
+            case limit
+              when 1, 2;
+                'smallint'
+              when 3, 4;
+                'integer'
+              when 5..8;
+                'bigint'
+              else
+                raise(ActiveRecordError, "No integer type has byte size #{limit}. Use a numeric with precision 0 instead.")
+            end
+          else
+            super
+        end
+      end
+
       private
 
       NATIVE_DATABASE_TYPES = {
@@ -457,14 +482,6 @@ module ActiveRecord
           :ss_timestamp => {:name => 'timestamp'}
       }
 
-      public
-
-      def native_database_types
-        NATIVE_DATABASE_TYPES
-      end
-
-      private
-
       def split_table_name(table)
         name_parts = table.split '.'
         case name_parts.length
@@ -478,25 +495,6 @@ module ActiveRecord
             raise "Invalid table name: #{table}"
         end
         [schema_name, table_name]
-      end
-
-      def type_to_sql(type, limit = nil, precision = nil, scale = nil)
-        case type.to_s
-          when 'integer'
-            return 'integer' unless limit
-            case limit
-              when 1, 2;
-                'smallint'
-              when 3, 4;
-                'integer'
-              when 5..8;
-                'bigint'
-              else
-                raise(ActiveRecordError, "No integer type has byte size #{limit}. Use a numeric with precision 0 instead.")
-            end
-          else
-            super
-        end
       end
 
       # QUOTING ################################################
