@@ -430,10 +430,6 @@ module ActiveRecord
         cols
       end
 
-      def native_database_types
-        NATIVE_DATABASE_TYPES
-      end
-
       # todo implement the remaining schema statements methods: rename columns, tables, etc...
       # todo, and these methods have to clear the cache!!!
 
@@ -460,6 +456,14 @@ module ActiveRecord
           :ntext => {:name => 'ntext', :limit => 255},
           :ss_timestamp => {:name => 'timestamp'}
       }
+
+      public
+
+      def native_database_types
+        NATIVE_DATABASE_TYPES
+      end
+
+      private
 
       def split_table_name(table)
         name_parts = table.split '.'
