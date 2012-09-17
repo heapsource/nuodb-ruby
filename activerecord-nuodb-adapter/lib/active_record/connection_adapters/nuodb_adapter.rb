@@ -303,6 +303,7 @@ module ActiveRecord
             "#{config[:database]}@#{config[:host]}", config[:schema],
             config[:username], config[:password])
         @statements = StatementPool.new(@connection, @config.fetch(:statement_limit) { 1000 })
+        @quoted_column_names, @quoted_table_names = {}, {}
       end
 
       def disconnect!
@@ -501,8 +502,12 @@ module ActiveRecord
 
       public
 
-      def quote_column_name(column_name)
-        column_name.to_s
+      def quote_column_name(name)
+        @quoted_column_names[name] ||= "`#{name.to_s.gsub('`', '``')}`"
+      end
+
+      def quote_table_name(name)
+        @quoted_table_names[name] ||= quote_column_name(name).gsub('.', '`.`')
       end
 
       def quoted_true
