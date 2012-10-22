@@ -34,6 +34,14 @@ require 'find'
 nuodb_include = nil
 nuodb_lib64 = nil
 
+case RUBY_PLATFORM
+  when /solaris|sunos/i
+    have_library('stdc++')
+    $CC = "gcc"
+    $CXX = "g++"
+    $LIBS << " -lstdc++ -lc"
+end
+
 def dylib_extension
   case RUBY_PLATFORM
     when /bsd/i, /darwin/i
@@ -134,7 +142,6 @@ case RUBY_PLATFORM
         $LDFLAGS << " -Wl,-rpath,'$$ORIGIN'"
       when /solaris|sunos/i
         # extras here...
-        have_library('stdc++')
         $LDFLAGS << " -Wl,-rpath,'$$ORIGIN' -m64"
       else
         puts
