@@ -26,12 +26,12 @@ Or you can do this using Rake:
 
 Start up a minimal chorus as follows:
 
-    java -jar nuoagent.jar --broker &
-    ./nuodb --chorus test --password bar --dba-user dba --dba-password baz &
+    java -jar ${NUODB_ROOT}/jar/nuoagent.jar --broker &
+    ${NUODB_ROOT}/bin/nuodb --chorus test --password bar --dba-user dba --dba-password baz &
 
 Create a user in the database:
 
-    ./nuosql test@localhost --user dba --password baz
+    ${NUODB_ROOT}/bin/nuosql test@localhost --user dba --password baz
     > create user cloud password 'user';
     > exit
 

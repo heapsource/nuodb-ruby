@@ -34,6 +34,7 @@ require 'active_record'
 
 class User < ActiveRecord::Base
   has_one :addr, :class_name => 'Addr'
+
   def to_s
     return "User(#{@id}), Username: #{@user_name}, Name: #{@first_name} #{@last_name}, #{@admin ? "admin" : "member"}\n" +
       "  Address: #{@addr}\n"
@@ -42,6 +43,7 @@ end
 
 class Addr < ActiveRecord::Base
   belongs_to :User
+
   def to_s
     return "Addr(#{@id}:#{@user_id}) Street: #{@street} City: #{@city} Zip: #{@zip}"
   end

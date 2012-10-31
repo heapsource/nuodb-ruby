@@ -26,7 +26,6 @@
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-require 'nuodb'
 require 'arel/visitors/nuodb'
 require 'active_record'
 require 'active_record/base'
@@ -34,6 +33,10 @@ require 'active_record/connection_adapters/abstract_adapter'
 require 'active_record/connection_adapters/statement_pool'
 require 'active_record/connection_adapters/nuodb/version'
 require 'arel/visitors/bind_visitor'
+require 'active_support/core_ext/hash/keys'
+
+gem 'nuodb', '~> 0.2.0'
+require 'nuodb'
 
 module ActiveRecord
 
@@ -193,7 +196,7 @@ module ActiveRecord
           cache[sql] = key
         end
 
-        def length;
+        def length
           cache.length
         end
 
@@ -371,13 +374,18 @@ module ActiveRecord
 
       public
 
-      def pk_and_sequence_for(table_name)
-        idcol = identity_column(table_name)
-        idcol ? [idcol.name, nil] : nil
-      end
-
       def primary_key(table_name)
-        identity_column(table_name).try(:name)
+        # n.b. active record does not support composite primary keys!
+        row = exec_query(<<-eosql, 'SCHEMA', [config[:schema], table_name.to_s]).rows.first
+          SELECT
+            indexfields.field as field_name
+          FROM
+            system.indexfields AS indexfields
+          WHERE
+            indexfields.schema = ? AND
+            indexfields.tablename = ?
+        eosql
+        row && row.first
       end
 
       def version
@@ -389,22 +397,80 @@ module ActiveRecord
       public
 
       def table_exists?(table_name)
-        tables.include?(table_name.to_s)
+        return false unless table_name
+
+        table_name = table_name.to_s.downcase
+        schema, table = table_name.split('.', 2)
+
+        unless table
+          table = schema
+          schema = nil
+        end
+
+        tables('SCHEMA', schema).include? table
       end
 
-      def tables()
-        sql = 'select tablename from system.tables where schema = ?'
-        cache = statements[sql] ||= {
-            :stmt => raw_connection.prepare(sql)
-        }
-        stmt = cache[:stmt]
-        stmt.setString 1, raw_connection.getSchema
-        result = stmt.executeQuery
-        tables = []
-        while result.next
-          tables << result.getString(1)
+      def tables(name = 'SCHEMA', schema = nil)
+        result = exec_query(<<-eosql, name, [schema || config[:schema]])
+          SELECT
+            tablename
+          FROM
+            system.tables
+          WHERE
+            schema = ?
+        eosql
+        result.inject([]) do |tables, row|
+          row.symbolize_keys!
+          tables << row[:tablename].downcase
         end
-        tables
+      end
+
+      # Returns an array of indexes for the given table. Skip primary keys.
+      def indexes(table_name, name = nil)
+
+        # the following query returns something like this:
+        #
+        # INDEXNAME              TABLENAME NON_UNIQUE FIELD     LENGTH
+        # ---------------------- --------- ---------- --------- ------
+        # COMPANIES..PRIMARY_KEY COMPANIES 0          ID        4
+        # COMPANY_INDEX          COMPANIES 1          FIRM_ID   4
+        # COMPANY_INDEX          COMPANIES 1          TYPE      255
+        # COMPANY_INDEX          COMPANIES 1          RATING    4
+        # COMPANY_INDEX          COMPANIES 1          RUBY_TYPE 255
+
+        result = exec_query(<<-eosql, 'SCHEMA', [config[:schema], table_name.to_s])
+          SELECT
+            indexes.indexname as index_name,
+            indexes.tablename as table_name,
+            CASE indexes.indextype WHEN 2 THEN 1 ELSE 0 END AS non_unique,
+            indexfields.field as field_name,
+            fields.length as field_length
+          FROM
+            system.indexes AS indexes, system.indexfields AS indexfields, system.fields AS fields
+          WHERE
+            indexes.schema = ? AND
+            indexes.tablename = ? AND
+            indexes.indexname = indexfields.indexname AND
+            indexfields.field = fields.field AND
+            indexfields.schema = fields.schema AND
+            indexfields.tablename = fields.tablename
+        eosql
+        indexes = []
+        current_index = nil
+        result.map do |row|
+          row.symbolize_keys!
+          index_name = row[:index_name]
+          if current_index != index_name
+            next if !!(/PRIMARY/ =~ index_name)
+            current_index = index_name
+            table_name = row[:table_name]
+            is_unique = row[:non_unique].to_i == 1
+            indexes << IndexDefinition.new(table_name, index_name, is_unique, [], [], [])
+          end
+          indexes.last.columns << row[:field_name] unless row[:field_name].nil?
+          indexes.last.lengths << row[:field_length] unless row[:field_length].nil?
+        end
+        indexes
       end
 
       def columns(table_name, name = nil)
@@ -445,11 +511,11 @@ module ActiveRecord
           when 'integer'
             return 'integer' unless limit
             case limit
-              when 1, 2;
+              when 1, 2
                 'smallint'
-              when 3, 4;
+              when 3, 4
                 'integer'
-              when 5..8;
+              when 5..8
                 'bigint'
               else
                 raise(ActiveRecordError, "No integer type has byte size #{limit}. Use a numeric with precision 0 instead.")
@@ -462,7 +528,7 @@ module ActiveRecord
       private
 
       NATIVE_DATABASE_TYPES = {
-          :primary_key => 'int not null generated always primary key',
+          :primary_key => 'int not null generated by default as identity primary key',
           :string => {:name => 'varchar', :limit => 255},
           :text => {:name => 'varchar', :limit => 255},
           :integer => {:name => 'integer'},
